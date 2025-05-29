@@ -74,9 +74,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({children}
         initAuth();
     }, []);
 
-    const user_login = async (email: string, password: string) => {
+    const user_login = async (phone: string, password: string) => {
         try {
-            const response = await userLogin({email, password});
+            const response = await userLogin({phone, password});
 
             // Update state first
             setRole(response.data.user);
