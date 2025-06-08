@@ -35,8 +35,8 @@ class ApiError extends Error {
 // Mock API delay
 const mockDelay = () => new Promise(resolve => setTimeout(resolve, 800));
 
-// Persistent mock data store - this simulates a real database
-let mockMerchants: Record<string, Merchant> = {
+// Persistent mock data store with passwords - this simulates a real database
+let mockMerchants: Record<string, Merchant & { password: string }> = {
   '1': {
     id: '1',
     name: '粤香茶餐厅',
@@ -57,7 +57,8 @@ let mockMerchants: Record<string, Merchant> = {
     phone: '13800138001',
     address: '北京市朝阳区某某路123号',
     description: '正宗粤菜，传承经典口味',
-    isActive: true
+    isActive: true,
+    password: 'password' // Store password for authentication
   },
   '2': {
     id: '2',
@@ -79,7 +80,8 @@ let mockMerchants: Record<string, Merchant> = {
     phone: '13800138002',
     address: '北京市海淀区某某路456号',
     description: '正宗川菜，麻辣鲜香',
-    isActive: true
+    isActive: true,
+    password: 'password123'
   },
   '3': {
     id: '3',
@@ -100,7 +102,8 @@ let mockMerchants: Record<string, Merchant> = {
     phone: '13800138003',
     address: '北京市朝阳区某某路789号',
     description: '新鲜日料，匠心制作',
-    isActive: true
+    isActive: true,
+    password: 'sushi2024'
   }
 };
 
@@ -221,18 +224,26 @@ export const merchantLogin = async (credentials: MerchantLoginCredentials): Prom
     throw new ApiError('请输入账户和密码');
   }
 
-  if (credentials.account === 'merchant@example.com' && credentials.password === 'password') {
+  // Search through all merchants for matching credentials
+  const merchant = Object.values(mockMerchants).find(m => 
+    (m.email === credentials.account || m.phone === credentials.account) && 
+    m.password === credentials.password
+  );
+
+  if (merchant) {
     const token = 'mock-merchant-jwt-token';
-    const merchantId = '1'; // Default merchant ID for demo login
     
     Cookies.set('merchant_auth_token', token, { expires: 7 });
     Cookies.set('merchant_role_type', 'Merchant', { expires: 7 });
-    Cookies.set('current_merchant_id', merchantId, { expires: 7 }); // Store merchant ID
+    Cookies.set('current_merchant_id', merchant.id, { expires: 7 });
+    
+    // Return merchant without password
+    const { password, ...merchantData } = merchant;
     
     return {
       success: true,
       data: {
-        merchant: mockMerchants[merchantId],
+        merchant: merchantData,
         token
       }
     };
@@ -248,7 +259,12 @@ export const merchantRegister = async (data: MerchantRegisterData): Promise<Merc
     throw new ApiError('请填写所有必填字段');
   }
 
-  if (data.account === 'merchant@example.com') {
+  // Check if account already exists
+  const existingMerchant = Object.values(mockMerchants).find(m => 
+    m.email === data.account || m.phone === data.account
+  );
+  
+  if (existingMerchant) {
     throw new ApiError('该账户已被注册');
   }
 
@@ -256,7 +272,7 @@ export const merchantRegister = async (data: MerchantRegisterData): Promise<Merc
   const newId = String(Object.keys(mockMerchants).length + 1);
   const token = 'mock-merchant-jwt-token';
   
-  const newMerchant: Merchant = {
+  const newMerchant: Merchant & { password: string } = {
     id: newId,
     name: data.name,
     email: data.account,
@@ -274,7 +290,8 @@ export const merchantRegister = async (data: MerchantRegisterData): Promise<Merc
     averagePrice: 60,
     address: '待完善',
     description: '新注册商家',
-    isActive: true
+    isActive: true,
+    password: data.password // Store password for future logins
   };
 
   // Persist new merchant
@@ -282,16 +299,17 @@ export const merchantRegister = async (data: MerchantRegisterData): Promise<Merc
   mockMenuItems[newId] = [];
 
   // Emit event for real-time updates
-  emit('merchantRegistered', newMerchant);
+  const { password, ...merchantData } = newMerchant;
+  emit('merchantRegistered', merchantData);
 
   Cookies.set('merchant_auth_token', token, { expires: 7 });
   Cookies.set('merchant_role_type', 'Merchant', { expires: 7 });
-  Cookies.set('current_merchant_id', newId, { expires: 7 }); // Store new merchant ID
+  Cookies.set('current_merchant_id', newId, { expires: 7 });
   
   return {
     success: true,
     data: {
-      merchant: newMerchant,
+      merchant: merchantData,
       token
     }
   };
@@ -300,7 +318,7 @@ export const merchantRegister = async (data: MerchantRegisterData): Promise<Merc
 export const merchantLogout = () => {
   Cookies.remove('merchant_auth_token');
   Cookies.remove('merchant_role_type');
-  Cookies.remove('current_merchant_id'); // Remove merchant ID
+  Cookies.remove('current_merchant_id');
 };
 
 export const checkMerchantAuth = async (): Promise<MerchantAuthResponse | null> => {
@@ -309,18 +327,18 @@ export const checkMerchantAuth = async (): Promise<MerchantAuthResponse | null> 
 
   await mockDelay();
   
-  // Get the current merchant ID from cookies
   const currentMerchantId = Cookies.get('current_merchant_id');
   if (!currentMerchantId || !mockMerchants[currentMerchantId]) {
-    // If no valid merchant ID found, clear auth and return null
     merchantLogout();
     return null;
   }
   
+  const { password, ...merchantData } = mockMerchants[currentMerchantId];
+  
   return {
     success: true,
     data: {
-      merchant: mockMerchants[currentMerchantId], // Return the correct merchant
+      merchant: merchantData,
       token
     }
   };
@@ -333,17 +351,21 @@ export const getMerchantById = async (merchantId: string): Promise<Merchant> => 
   if (!merchant) {
     throw new ApiError('商家不存在');
   }
-  return { ...merchant }; // Return a copy to prevent direct mutation
+  const { password, ...merchantData } = merchant;
+  return { ...merchantData };
 };
 
 export const getMenuByMerchantId = async (merchantId: string): Promise<MenuItem[]> => {
   await mockDelay();
-  return [...(mockMenuItems[merchantId] || [])]; // Return a copy
+  return [...(mockMenuItems[merchantId] || [])];
 };
 
 export const getAllMerchants = async (): Promise<Merchant[]> => {
   await mockDelay();
-  return Object.values(mockMerchants).map(merchant => ({ ...merchant })); // Return copies
+  return Object.values(mockMerchants).map(merchant => {
+    const { password, ...merchantData } = merchant;
+    return { ...merchantData };
+  });
 };
 
 // Merchant management functions with real-time updates
@@ -358,9 +380,10 @@ export const updateMerchantProfile = async (merchantId: string, updates: Partial
   mockMerchants[merchantId] = { ...mockMerchants[merchantId], ...updates };
   
   // Emit event for real-time updates
-  emit('merchantUpdated', { merchantId, updates, merchant: mockMerchants[merchantId] });
+  const { password, ...merchantData } = mockMerchants[merchantId];
+  emit('merchantUpdated', { merchantId, updates, merchant: merchantData });
   
-  return { ...mockMerchants[merchantId] };
+  return { ...merchantData };
 };
 
 export const fetchMerchantMenu = async (merchantId?: string): Promise<MenuItem[]> => {

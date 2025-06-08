@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Row, Col, Pagination, Empty, Spin, Select } from 'antd';
+import { Typography, Row, Col, Pagination, Empty, Spin, Select, Button } from 'antd';
 import styled from 'styled-components';
 import { useLocation } from 'react-router-dom';
+import { RefreshCw, MapPin } from 'lucide-react';
 import SearchBar from '../components/SearchBar';
 import FilterBar from '../components/FilterBar';
 import MerchantCard from '../components/MerchantCard';
 import LoadingSkeleton from '../components/LoadingSkeleton';
 import { Merchant } from '../types';
 import { customStyles } from '../styles/theme';
-import { MapPin } from 'lucide-react';
+import { useAllMerchants } from '../hooks/useAllMerchants';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -57,76 +58,21 @@ const PaginationContainer = styled.div`
   justify-content: center;
 `;
 
-// Mock data with averagePrice added
-const mockMerchants: Merchant[] = [
-  {
-    id: '1',
-    name: '金龙餐厅',
-    logo: 'https://images.pexels.com/photos/941861/pexels-photo-941861.jpeg',
-    coverImage: 'https://images.pexels.com/photos/1640772/pexels-photo-1640772.jpeg',
-    cuisine: ['中餐', '粤菜'],
-    rating: 4.8,
-    deliveryTime: 25,
-    deliveryFee: 2.99,
-    minOrder: 15,
-    distance: 1.2,
-    promotions: [
-      { id: 'p1', type: 'discount', description: '新用户下单立减20%' }
-    ],
-    isNew: true,
-    averagePrice: 50
-  },
-  {
-    id: '2',
-    name: '意面天堂',
-    logo: 'https://images.pexels.com/photos/1438672/pexels-photo-1438672.jpeg',
-    coverImage: 'https://images.pexels.com/photos/1527603/pexels-photo-1527603.jpeg',
-    cuisine: ['意餐', '地中海'],
-    rating: 4.5,
-    deliveryTime: 30,
-    deliveryFee: 1.99,
-    minOrder: 20,
-    distance: 2.4,
-    promotions: [
-      { id: 'p2', type: 'freeDelivery', description: '订单满30元免配送费' }
-    ],
-    averagePrice: 120
-  },
-  {
-    id: '3',
-    name: '寿司速递',
-    logo: 'https://images.pexels.com/photos/359993/pexels-photo-359993.jpeg',
-    coverImage: 'https://images.pexels.com/photos/858508/pexels-photo-858508.jpeg',
-    cuisine: ['日料', '亚洲菜'],
-    rating: 4.7,
-    deliveryTime: 20,
-    deliveryFee: 3.99,
-    minOrder: 25,
-    distance: 1.8,
-    promotions: [
-      { id: 'p3', type: 'gift', description: '订单满35元赠送味增汤' }
-    ],
-    averagePrice: 150
-  },
-  {
-    id: '4',
-    name: '墨西哥风情',
-    logo: 'https://images.pexels.com/photos/2087748/pexels-photo-2087748.jpeg',
-    coverImage: 'https://images.pexels.com/photos/4958641/pexels-photo-4958641.jpeg',
-    cuisine: ['墨西哥菜', '拉美菜'],
-    rating: 4.3,
-    deliveryTime: 35,
-    deliveryFee: 0,
-    minOrder: 15,
-    distance: 3.1,
-    promotions: [],
-    averagePrice: 80
-  }
-];
+const RefreshButton = styled(Button)`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const LoadingContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+`;
 
 const MerchantList: React.FC = () => {
   const locationHook = useLocation();
-  const [loading, setLoading] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState(locationHook.state?.keyword || '');
   const [activeFilters, setActiveFilters] = useState<Record<string, string>>(
     locationHook.state?.filters || {}
@@ -134,18 +80,19 @@ const MerchantList: React.FC = () => {
   const [sortOrder, setSortOrder] = useState('recommended');
   const [currentPage, setCurrentPage] = useState(1);
   const [location, setLocation] = useState('北京');
-  const [filteredMerchants, setFilteredMerchants] = useState<Merchant[]>(mockMerchants);
+  const [filteredMerchants, setFilteredMerchants] = useState<Merchant[]>([]);
+
+  // Use the new hook with real-time updates
+  const { data: merchants = [], isLoading, error, refetch } = useAllMerchants();
 
   useEffect(() => {
-    setLoading(true);
-    const filtered = filterMerchants(mockMerchants);
+    const filtered = filterMerchants(merchants);
     const sorted = sortMerchants(filtered);
     setFilteredMerchants(sorted);
-    setLoading(false);
-  }, [activeFilters, sortOrder, searchKeyword]);
+  }, [merchants, activeFilters, sortOrder, searchKeyword]);
 
-  const filterMerchants = (merchants: Merchant[]) => {
-    return merchants.filter(merchant => {
+  const filterMerchants = (merchantList: Merchant[]) => {
+    return merchantList.filter(merchant => {
       // 菜系筛选
       if (activeFilters.cuisine && activeFilters.cuisine !== 'all') {
         const cuisineMatch = merchant.cuisine.some(c => 
@@ -211,8 +158,8 @@ const MerchantList: React.FC = () => {
     });
   };
 
-  const sortMerchants = (merchants: Merchant[]) => {
-    return [...merchants].sort((a, b) => {
+  const sortMerchants = (merchantList: Merchant[]) => {
+    return [...merchantList].sort((a, b) => {
       switch (sortOrder) {
         case 'rating':
           return b.rating - a.rating;
@@ -231,13 +178,8 @@ const MerchantList: React.FC = () => {
   };
 
   const handleSearch = (keyword: string, filters: any) => {
-    setLoading(true);
     setSearchKeyword(keyword);
     setActiveFilters(prev => ({ ...prev, ...filters }));
-    
-    setTimeout(() => {
-      setLoading(false);
-    }, 500);
   };
   
   const handleFilterChange = (key: string, value: string | null) => {
@@ -262,8 +204,12 @@ const MerchantList: React.FC = () => {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  const handleRefresh = () => {
+    refetch();
+  };
   
-  if (loading) {
+  if (isLoading) {
     return (
       <PageContainer>
         <HeaderSection>
@@ -273,23 +219,50 @@ const MerchantList: React.FC = () => {
       </PageContainer>
     );
   }
+
+  if (error) {
+    return (
+      <PageContainer>
+        <HeaderSection>
+          <Title level={2}>{location}的餐厅</Title>
+        </HeaderSection>
+        <LoadingContainer>
+          <div style={{ textAlign: 'center' }}>
+            <Text type="danger">加载失败，请重试</Text>
+            <br />
+            <RefreshButton onClick={handleRefresh} style={{ marginTop: '16px' }}>
+              <RefreshCw size={16} />
+              重新加载
+            </RefreshButton>
+          </div>
+        </LoadingContainer>
+      </PageContainer>
+    );
+  }
   
   return (
     <PageContainer>
       <HeaderSection>
-        <LocationSelector>
-          <MapPin size={20} />
-          <Select
-            value={location}
-            onChange={setLocation}
-            style={{ width: 200 }}
-          >
-            <Option value="北京">北京</Option>
-            <Option value="上海">上海</Option>
-            <Option value="广州">广州</Option>
-            <Option value="深圳">深圳</Option>
-          </Select>
-        </LocationSelector>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <LocationSelector>
+            <MapPin size={20} />
+            <Select
+              value={location}
+              onChange={setLocation}
+              style={{ width: 200 }}
+            >
+              <Option value="北京">北京</Option>
+              <Option value="上海">上海</Option>
+              <Option value="广州">广州</Option>
+              <Option value="深圳">深圳</Option>
+            </Select>
+          </LocationSelector>
+          
+          <RefreshButton onClick={handleRefresh}>
+            <RefreshCw size={16} />
+            刷新数据
+          </RefreshButton>
+        </div>
         
         <Title level={2}>{location}的餐厅</Title>
         
@@ -323,7 +296,7 @@ const MerchantList: React.FC = () => {
           <PaginationContainer>
             <Pagination 
               current={currentPage} 
-              total={50} 
+              total={filteredMerchants.length} 
               pageSize={12} 
               onChange={handlePageChange} 
               showSizeChanger={false}

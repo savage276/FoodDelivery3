@@ -12,7 +12,6 @@ import { MerchantAuthProvider } from './contexts/MerchantAuthContext';
 import { CartProvider } from './contexts/CartContext';
 import { FavoriteProvider } from './contexts/FavoriteContext';
 import { OrderProvider } from './contexts/OrderContext';
-import { MerchantProvider } from './contexts/MerchantContext';
 import { UserProvider } from './contexts/UserContext';
 import { theme } from './styles/theme';
 import './index.css';
@@ -38,15 +37,13 @@ createRoot(document.getElementById('root')!).render(
             <AuthProvider>
               <MerchantAuthProvider>
                 <UserProvider>
-                  <MerchantProvider>
-                    <OrderProvider>
-                      <FavoriteProvider>
-                        <CartProvider>
-                          <App />
-                        </CartProvider>
-                      </FavoriteProvider>
-                    </OrderProvider>
-                  </MerchantProvider>
+                  <OrderProvider>
+                    <FavoriteProvider>
+                      <CartProvider>
+                        <App />
+                      </CartProvider>
+                    </FavoriteProvider>
+                  </OrderProvider>
                 </UserProvider>
               </MerchantAuthProvider>
             </AuthProvider>
