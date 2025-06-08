@@ -305,7 +305,7 @@ const MerchantDetail: React.FC = () => {
           title="商家不存在"
           subTitle="抱歉，您访问的商家不存在或已下线"
           extra={[
-            <Button key="back" type="primary" onClick={() => navigate('/')}>
+            <Button key="back\" type="primary\" onClick={() => navigate('/')}>
               返回首页
             </Button>,
             <RefreshButton key="refresh" onClick={handleRefresh}>
@@ -422,7 +422,7 @@ const MerchantDetail: React.FC = () => {
                 title="菜单加载失败"
                 subTitle="请稍后重试"
                 extra={
-                  <Button type="primary" onClick={refetchMenu}>
+                  <Button type="primary\" onClick={refetchMenu}>
                     重新加载
                   </Button>
                 }
