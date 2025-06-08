@@ -213,6 +213,10 @@ const LoadingContainer = styled.div`
   min-height: 200px;
 `;
 
+const RefreshButton = styled(Button)`
+  margin-left: 8px;
+`;
+
 const MerchantDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -220,9 +224,9 @@ const MerchantDetail: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<string>('');
   const { isFavorite, toggleFavorite } = useFavorite();
   
-  // Use the new hooks
-  const { data: merchant, isLoading: merchantLoading, error: merchantError } = useMerchant(id);
-  const { data: menuItems = [], isLoading: menuLoading, error: menuError } = useMenu(id);
+  // Use the new hooks with real-time updates
+  const { data: merchant, isLoading: merchantLoading, error: merchantError, refetch: refetchMerchant } = useMerchant(id);
+  const { data: menuItems = [], isLoading: menuLoading, error: menuError, refetch: refetchMenu } = useMenu(id);
   
   const favorite = merchant ? isFavorite(merchant.id) : false;
   
@@ -280,6 +284,11 @@ const MerchantDetail: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [categories]);
 
+  const handleRefresh = () => {
+    refetchMerchant();
+    refetchMenu();
+  };
+
   if (merchantLoading) {
     return (
       <PageContainer>
@@ -295,11 +304,14 @@ const MerchantDetail: React.FC = () => {
           status="404"
           title="商家不存在"
           subTitle="抱歉，您访问的商家不存在或已下线"
-          extra={
-            <Button type="primary\" onClick={() => navigate('/')}>
+          extra={[
+            <Button key="back" type="primary" onClick={() => navigate('/')}>
               返回首页
-            </Button>
-          }
+            </Button>,
+            <RefreshButton key="refresh" onClick={handleRefresh}>
+              重新加载
+            </RefreshButton>
+          ]}
         />
       </PageContainer>
     );
@@ -308,7 +320,13 @@ const MerchantDetail: React.FC = () => {
   return (
     <div>
       <PageContainer>
-        <BackButton />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <BackButton />
+          <RefreshButton onClick={handleRefresh}>
+            刷新数据
+          </RefreshButton>
+        </div>
+        
         <HeroContainer>
           <HeroImage src={merchant.coverImage} alt={merchant.name} />
         </HeroContainer>
@@ -403,6 +421,11 @@ const MerchantDetail: React.FC = () => {
                 status="error"
                 title="菜单加载失败"
                 subTitle="请稍后重试"
+                extra={
+                  <Button type="primary" onClick={refetchMenu}>
+                    重新加载
+                  </Button>
+                }
               />
             ) : categories.length === 0 ? (
               <Result

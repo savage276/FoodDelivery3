@@ -37,6 +37,7 @@ import {
 } from 'lucide-react';
 import styled from 'styled-components';
 import { useMerchantAuth } from '../../contexts/MerchantAuthContext';
+import { useUpdateMerchantProfile } from '../../hooks/useMerchant';
 import { customStyles } from '../../styles/theme';
 
 const { Title, Text, Paragraph } = Typography;
@@ -117,56 +118,52 @@ const VerificationBadge = styled.div<{ $verified: boolean }>`
 
 const MerchantCenter: React.FC = () => {
   const { merchant } = useMerchantAuth();
+  const updateProfileMutation = useUpdateMerchantProfile(merchant?.id);
   const [editingBasic, setEditingBasic] = useState(false);
   const [editingSecurity, setEditingSecurity] = useState(false);
   const [basicForm] = Form.useForm();
   const [securityForm] = Form.useForm();
   const [passwordModalVisible, setPasswordModalVisible] = useState(false);
-  const [loading, setLoading] = useState(false);
 
   if (!merchant) {
     return null;
   }
 
   const handleBasicInfoSave = async (values: any) => {
-    setLoading(true);
     try {
-      // Mock API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      message.success('基本信息更新成功');
+      await updateProfileMutation.mutateAsync({
+        name: values.name,
+        phone: values.phone,
+        email: values.email,
+        address: values.address,
+        description: values.description,
+        cuisine: values.cuisine
+      });
       setEditingBasic(false);
     } catch (error) {
-      message.error('更新失败');
-    } finally {
-      setLoading(false);
+      // Error is handled by the mutation
     }
   };
 
   const handleSecuritySave = async (values: any) => {
-    setLoading(true);
     try {
-      // Mock API call
+      // Mock API call for security settings
       await new Promise(resolve => setTimeout(resolve, 1000));
       message.success('安全设置更新成功');
       setEditingSecurity(false);
     } catch (error) {
       message.error('更新失败');
-    } finally {
-      setLoading(false);
     }
   };
 
   const handlePasswordChange = async (values: any) => {
-    setLoading(true);
     try {
-      // Mock API call
+      // Mock API call for password change
       await new Promise(resolve => setTimeout(resolve, 1000));
       message.success('密码修改成功');
       setPasswordModalVisible(false);
     } catch (error) {
       message.error('密码修改失败');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -187,6 +184,8 @@ const MerchantCenter: React.FC = () => {
     onChange: (info: any) => {
       if (info.file.status === 'done') {
         message.success('头像上传成功');
+        // Update merchant logo in real-time
+        updateProfileMutation.mutate({ logo: info.file.response?.url });
       } else if (info.file.status === 'error') {
         message.error('头像上传失败');
       }
@@ -302,6 +301,7 @@ const MerchantCenter: React.FC = () => {
                 <Button
                   type="text"
                   icon={editingBasic ? <Save size={14} /> : <Edit size={14} />}
+                  loading={updateProfileMutation.isPending}
                   onClick={() => {
                     if (editingBasic) {
                       basicForm.submit();
@@ -389,7 +389,7 @@ const MerchantCenter: React.FC = () => {
                     <Button 
                       type="primary" 
                       htmlType="submit" 
-                      loading={loading}
+                      loading={updateProfileMutation.isPending}
                     >
                       保存
                     </Button>
@@ -494,8 +494,7 @@ const MerchantCenter: React.FC = () => {
                   <Space>
                     <Button 
                       type="primary" 
-                      htmlType="submit" 
-                      loading={loading}
+                      htmlType="submit"
                     >
                       保存
                     </Button>
@@ -711,7 +710,7 @@ const MerchantCenter: React.FC = () => {
               <Button onClick={() => setPasswordModalVisible(false)}>
                 取消
               </Button>
-              <Button type="primary" htmlType="submit" loading={loading}>
+              <Button type="primary" htmlType="submit">
                 确认修改
               </Button>
             </Space>

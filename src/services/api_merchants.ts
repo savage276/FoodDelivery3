@@ -33,10 +33,10 @@ class ApiError extends Error {
 }
 
 // Mock API delay
-const mockDelay = () => new Promise(resolve => setTimeout(resolve, 1000));
+const mockDelay = () => new Promise(resolve => setTimeout(resolve, 800));
 
-// Mock merchant data - unified with MerchantContext
-const mockMerchants: Record<string, Merchant> = {
+// Persistent mock data store - this simulates a real database
+let mockMerchants: Record<string, Merchant> = {
   '1': {
     id: '1',
     name: '粤香茶餐厅',
@@ -105,7 +105,7 @@ const mockMerchants: Record<string, Merchant> = {
 };
 
 // Mock menu items by merchant
-const mockMenuItems: Record<string, MenuItem[]> = {
+let mockMenuItems: Record<string, MenuItem[]> = {
   '1': [
     {
       id: 'm1',
@@ -190,6 +190,29 @@ const mockMenuItems: Record<string, MenuItem[]> = {
   ]
 };
 
+// Event system for real-time updates
+type EventCallback = (data: any) => void;
+const eventListeners: Record<string, EventCallback[]> = {};
+
+const emit = (event: string, data: any) => {
+  if (eventListeners[event]) {
+    eventListeners[event].forEach(callback => callback(data));
+  }
+};
+
+const on = (event: string, callback: EventCallback) => {
+  if (!eventListeners[event]) {
+    eventListeners[event] = [];
+  }
+  eventListeners[event].push(callback);
+};
+
+const off = (event: string, callback: EventCallback) => {
+  if (eventListeners[event]) {
+    eventListeners[event] = eventListeners[event].filter(cb => cb !== callback);
+  }
+};
+
 // Auth functions
 export const merchantLogin = async (credentials: MerchantLoginCredentials): Promise<MerchantAuthResponse> => {
   await mockDelay();
@@ -200,8 +223,8 @@ export const merchantLogin = async (credentials: MerchantLoginCredentials): Prom
 
   if (credentials.account === 'merchant@example.com' && credentials.password === 'password') {
     const token = 'mock-merchant-jwt-token';
-    Cookies.set('merchant_auth_token', token);
-    Cookies.set('merchant_role_type', 'Merchant');
+    Cookies.set('merchant_auth_token', token, { expires: 7 });
+    Cookies.set('merchant_role_type', 'Merchant', { expires: 7 });
     return {
       success: true,
       data: {
@@ -225,16 +248,41 @@ export const merchantRegister = async (data: MerchantRegisterData): Promise<Merc
     throw new ApiError('该账户已被注册');
   }
 
+  // Generate new merchant ID
+  const newId = String(Object.keys(mockMerchants).length + 1);
   const token = 'mock-merchant-jwt-token';
-  const newMerchant = {
-    ...mockMerchants['1'],
+  
+  const newMerchant: Merchant = {
+    id: newId,
     name: data.name,
     email: data.account,
-    phone: data.contact
+    phone: data.contact,
+    logo: 'https://images.pexels.com/photos/941861/pexels-photo-941861.jpeg',
+    coverImage: 'https://images.pexels.com/photos/1640772/pexels-photo-1640772.jpeg',
+    cuisine: ['中餐'],
+    rating: 5.0,
+    deliveryTime: 30,
+    deliveryFee: 3.99,
+    minOrder: 20,
+    distance: 2.0,
+    promotions: [],
+    isNew: true,
+    averagePrice: 60,
+    address: '待完善',
+    description: '新注册商家',
+    isActive: true
   };
 
-  Cookies.set('merchant_auth_token', token);
-  Cookies.set('merchant_role_type', 'Merchant');
+  // Persist new merchant
+  mockMerchants[newId] = newMerchant;
+  mockMenuItems[newId] = [];
+
+  // Emit event for real-time updates
+  emit('merchantRegistered', newMerchant);
+
+  Cookies.set('merchant_auth_token', token, { expires: 7 });
+  Cookies.set('merchant_role_type', 'Merchant', { expires: 7 });
+  
   return {
     success: true,
     data: {
@@ -270,25 +318,40 @@ export const getMerchantById = async (merchantId: string): Promise<Merchant> => 
   if (!merchant) {
     throw new ApiError('商家不存在');
   }
-  return merchant;
+  return { ...merchant }; // Return a copy to prevent direct mutation
 };
 
 export const getMenuByMerchantId = async (merchantId: string): Promise<MenuItem[]> => {
   await mockDelay();
-  return mockMenuItems[merchantId] || [];
+  return [...(mockMenuItems[merchantId] || [])]; // Return a copy
 };
 
 export const getAllMerchants = async (): Promise<Merchant[]> => {
   await mockDelay();
-  return Object.values(mockMerchants);
+  return Object.values(mockMerchants).map(merchant => ({ ...merchant })); // Return copies
 };
 
-// Merchant management functions
+// Merchant management functions with real-time updates
+export const updateMerchantProfile = async (merchantId: string, updates: Partial<Merchant>): Promise<Merchant> => {
+  await mockDelay();
+  
+  if (!mockMerchants[merchantId]) {
+    throw new ApiError('商家不存在');
+  }
+  
+  // Update merchant data
+  mockMerchants[merchantId] = { ...mockMerchants[merchantId], ...updates };
+  
+  // Emit event for real-time updates
+  emit('merchantUpdated', { merchantId, updates, merchant: mockMerchants[merchantId] });
+  
+  return { ...mockMerchants[merchantId] };
+};
+
 export const fetchMerchantMenu = async (merchantId?: string): Promise<MenuItem[]> => {
   await mockDelay();
-  // If no merchantId provided, use the first merchant (for demo)
   const id = merchantId || '1';
-  return mockMenuItems[id] || [];
+  return [...(mockMenuItems[id] || [])];
 };
 
 export const addMenuItem = async (item: Omit<MenuItem, 'id'>, merchantId?: string): Promise<MenuItem> => {
@@ -304,7 +367,10 @@ export const addMenuItem = async (item: Omit<MenuItem, 'id'>, merchantId?: strin
   }
   mockMenuItems[id].push(newItem);
   
-  return newItem;
+  // Emit event for real-time updates
+  emit('menuItemAdded', { merchantId: id, item: newItem });
+  
+  return { ...newItem };
 };
 
 export const updateMenuItem = async (itemId: string, item: Partial<MenuItem>, merchantId?: string): Promise<MenuItem> => {
@@ -318,7 +384,11 @@ export const updateMenuItem = async (itemId: string, item: Partial<MenuItem>, me
   }
   
   mockMenuItems[id][index] = { ...mockMenuItems[id][index], ...item };
-  return mockMenuItems[id][index];
+  
+  // Emit event for real-time updates
+  emit('menuItemUpdated', { merchantId: id, itemId, item: mockMenuItems[id][index] });
+  
+  return { ...mockMenuItems[id][index] };
 };
 
 export const deleteMenuItem = async (itemId: string, merchantId?: string): Promise<void> => {
@@ -332,4 +402,10 @@ export const deleteMenuItem = async (itemId: string, merchantId?: string): Promi
   }
   
   mockMenuItems[id].splice(index, 1);
+  
+  // Emit event for real-time updates
+  emit('menuItemDeleted', { merchantId: id, itemId });
 };
+
+// Export event system for components to use
+export { on, off, emit };
