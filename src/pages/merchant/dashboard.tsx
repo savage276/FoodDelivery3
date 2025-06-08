@@ -12,7 +12,9 @@ import {
   Row,
   Col,
   Statistic,
-  Switch
+  Switch,
+  Layout,
+  Menu
 } from 'antd';
 import { 
   Plus, 
@@ -22,9 +24,12 @@ import {
   Store, 
   DollarSign, 
   Package, 
-  TrendingUp 
+  TrendingUp,
+  User,
+  BarChart3,
+  Settings
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import { useMerchantAuth } from '../../contexts/MerchantAuthContext';
 import { MenuItem } from '../../types';
@@ -37,17 +42,23 @@ import {
 } from '../../services/api_merchants';
 import AddMenuItemModal from '../../components/merchant/AddMenuItemModal';
 import EditMenuItemModal from '../../components/merchant/EditMenuItemModal';
+import MerchantCenter from './MerchantCenter';
 
 const { Title, Text } = Typography;
+const { Sider, Content } = Layout;
 
 const PageContainer = styled.div`
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: ${customStyles.spacing.lg};
-  
-  @media (max-width: 768px) {
-    padding: ${customStyles.spacing.md};
-  }
+  min-height: 100vh;
+  background-color: #f0f2f5;
+`;
+
+const StyledLayout = styled(Layout)`
+  min-height: 100vh;
+`;
+
+const StyledSider = styled(Sider)`
+  background: white;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
 `;
 
 const HeaderCard = styled(Card)`
@@ -68,6 +79,14 @@ const HeaderCard = styled(Card)`
   }
 `;
 
+const ContentContainer = styled.div`
+  padding: ${customStyles.spacing.lg};
+  
+  @media (max-width: 768px) {
+    padding: ${customStyles.spacing.md};
+  }
+`;
+
 const ActionButton = styled(Button)`
   display: flex;
   align-items: center;
@@ -81,22 +100,58 @@ const StyledTable = styled(Table)`
   }
 `;
 
+const StyledMenu = styled(Menu)`
+  border-right: none;
+  
+  .ant-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 4px 0;
+    border-radius: 6px;
+  }
+  
+  .ant-menu-item-selected {
+    background-color: #e6f7ff;
+    color: ${customStyles.colors.primary};
+  }
+`;
+
+const LogoSection = styled.div`
+  padding: ${customStyles.spacing.lg};
+  text-align: center;
+  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: ${customStyles.spacing.md};
+`;
+
 const MerchantDashboard: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { merchant, merchant_logout } = useMerchantAuth();
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
+  const [collapsed, setCollapsed] = useState(false);
+  const [currentPage, setCurrentPage] = useState('menu');
 
   useEffect(() => {
     if (!merchant) {
       navigate('/login?tab=merchant');
       return;
     }
+    
+    // Get current page from URL
+    const path = location.pathname;
+    if (path.includes('center')) {
+      setCurrentPage('center');
+    } else {
+      setCurrentPage('menu');
+    }
+    
     loadMenuItems();
-  }, [merchant, navigate]);
+  }, [merchant, navigate, location]);
 
   const loadMenuItems = async () => {
     setLoading(true);
@@ -154,6 +209,38 @@ const MerchantDashboard: React.FC = () => {
   const handleLogout = () => {
     merchant_logout();
   };
+
+  const handleMenuClick = (key: string) => {
+    setCurrentPage(key);
+    if (key === 'center') {
+      navigate('/merchant/center');
+    } else {
+      navigate('/merchant/dashboard');
+    }
+  };
+
+  const menuConfig = [
+    {
+      key: 'menu',
+      icon: <Package size={16} />,
+      label: '菜品管理',
+    },
+    {
+      key: 'center',
+      icon: <User size={16} />,
+      label: '商家中心',
+    },
+    {
+      key: 'analytics',
+      icon: <BarChart3 size={16} />,
+      label: '数据分析',
+    },
+    {
+      key: 'settings',
+      icon: <Settings size={16} />,
+      label: '店铺设置',
+    },
+  ];
 
   const columns = [
     {
@@ -261,115 +348,182 @@ const MerchantDashboard: React.FC = () => {
   const availableItems = menuItems.filter(item => item.isAvailable).length;
   const totalValue = menuItems.reduce((sum, item) => sum + (item.price * (item.stock || 0)), 0);
 
+  const renderContent = () => {
+    if (currentPage === 'center') {
+      return <MerchantCenter />;
+    }
+
+    if (currentPage === 'analytics') {
+      return (
+        <div style={{ textAlign: 'center', padding: '100px 0' }}>
+          <Title level={3}>数据分析</Title>
+          <Text type="secondary">功能开发中...</Text>
+        </div>
+      );
+    }
+
+    if (currentPage === 'settings') {
+      return (
+        <div style={{ textAlign: 'center', padding: '100px 0' }}>
+          <Title level={3}>店铺设置</Title>
+          <Text type="secondary">功能开发中...</Text>
+        </div>
+      );
+    }
+
+    // Default menu management page
+    return (
+      <>
+        <HeaderCard>
+          <Row gutter={24} align="middle">
+            <Col>
+              <Avatar 
+                size={80} 
+                src={merchant.logo} 
+                icon={<Store />}
+              />
+            </Col>
+            <Col flex="1">
+              <Title level={2} style={{ color: 'white', margin: 0 }}>
+                {merchant.name}
+              </Title>
+              <Text style={{ color: 'rgba(255, 255, 255, 0.85)' }}>
+                {merchant.description || '欢迎来到商家管理后台'}
+              </Text>
+            </Col>
+            <Col>
+              <ActionButton
+                icon={<LogOut size={16} />}
+                onClick={handleLogout}
+                style={{ 
+                  background: 'rgba(255, 255, 255, 0.2)', 
+                  color: 'white',
+                  border: '1px solid rgba(255, 255, 255, 0.3)'
+                }}
+              >
+                退出登录
+              </ActionButton>
+            </Col>
+          </Row>
+
+          <Row gutter={24} style={{ marginTop: customStyles.spacing.lg }}>
+            <Col xs={24} sm={8}>
+              <Statistic
+                title="菜品总数"
+                value={totalItems}
+                prefix={<Package size={20} />}
+              />
+            </Col>
+            <Col xs={24} sm={8}>
+              <Statistic
+                title="在售菜品"
+                value={availableItems}
+                prefix={<TrendingUp size={20} />}
+              />
+            </Col>
+            <Col xs={24} sm={8}>
+              <Statistic
+                title="库存总价值"
+                value={totalValue}
+                precision={2}
+                prefix={<DollarSign size={20} />}
+                suffix="元"
+              />
+            </Col>
+          </Row>
+        </HeaderCard>
+
+        <Card>
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            marginBottom: customStyles.spacing.lg 
+          }}>
+            <Title level={3} style={{ margin: 0 }}>菜品管理</Title>
+            <ActionButton
+              type="primary"
+              icon={<Plus size={16} />}
+              onClick={() => setAddModalVisible(true)}
+            >
+              新增菜品
+            </ActionButton>
+          </div>
+
+          <StyledTable
+            columns={columns}
+            dataSource={menuItems}
+            rowKey="id"
+            loading={loading}
+            pagination={{
+              pageSize: 10,
+              showSizeChanger: true,
+              showQuickJumper: true,
+              showTotal: (total, range) => 
+                `第 ${range[0]}-${range[1]} 条，共 ${total} 条记录`,
+            }}
+            scroll={{ x: 800 }}
+          />
+        </Card>
+
+        <AddMenuItemModal
+          visible={addModalVisible}
+          onCancel={() => setAddModalVisible(false)}
+          onSubmit={handleAddItem}
+        />
+
+        <EditMenuItemModal
+          visible={editModalVisible}
+          item={editingItem}
+          onCancel={() => {
+            setEditModalVisible(false);
+            setEditingItem(null);
+          }}
+          onSubmit={handleEditItem}
+        />
+      </>
+    );
+  };
+
   return (
     <PageContainer>
-      <HeaderCard>
-        <Row gutter={24} align="middle">
-          <Col>
+      <StyledLayout>
+        <StyledSider 
+          collapsible 
+          collapsed={collapsed} 
+          onCollapse={setCollapsed}
+          width={250}
+          collapsedWidth={80}
+        >
+          <LogoSection>
             <Avatar 
-              size={80} 
+              size={collapsed ? 40 : 60} 
               src={merchant.logo} 
               icon={<Store />}
             />
-          </Col>
-          <Col flex="1">
-            <Title level={2} style={{ color: 'white', margin: 0 }}>
-              {merchant.name}
-            </Title>
-            <Text style={{ color: 'rgba(255, 255, 255, 0.85)' }}>
-              {merchant.description || '欢迎来到商家管理后台'}
-            </Text>
-          </Col>
-          <Col>
-            <ActionButton
-              icon={<LogOut size={16} />}
-              onClick={handleLogout}
-              style={{ 
-                background: 'rgba(255, 255, 255, 0.2)', 
-                color: 'white',
-                border: '1px solid rgba(255, 255, 255, 0.3)'
-              }}
-            >
-              退出登录
-            </ActionButton>
-          </Col>
-        </Row>
-
-        <Row gutter={24} style={{ marginTop: customStyles.spacing.lg }}>
-          <Col xs={24} sm={8}>
-            <Statistic
-              title="菜品总数"
-              value={totalItems}
-              prefix={<Package size={20} />}
-            />
-          </Col>
-          <Col xs={24} sm={8}>
-            <Statistic
-              title="在售菜品"
-              value={availableItems}
-              prefix={<TrendingUp size={20} />}
-            />
-          </Col>
-          <Col xs={24} sm={8}>
-            <Statistic
-              title="库存总价值"
-              value={totalValue}
-              precision={2}
-              prefix={<DollarSign size={20} />}
-              suffix="元"
-            />
-          </Col>
-        </Row>
-      </HeaderCard>
-
-      <Card>
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          marginBottom: customStyles.spacing.lg 
-        }}>
-          <Title level={3} style={{ margin: 0 }}>菜品管理</Title>
-          <ActionButton
-            type="primary"
-            icon={<Plus size={16} />}
-            onClick={() => setAddModalVisible(true)}
-          >
-            新增菜品
-          </ActionButton>
-        </div>
-
-        <StyledTable
-          columns={columns}
-          dataSource={menuItems}
-          rowKey="id"
-          loading={loading}
-          pagination={{
-            pageSize: 10,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total, range) => 
-              `第 ${range[0]}-${range[1]} 条，共 ${total} 条记录`,
-          }}
-          scroll={{ x: 800 }}
-        />
-      </Card>
-
-      <AddMenuItemModal
-        visible={addModalVisible}
-        onCancel={() => setAddModalVisible(false)}
-        onSubmit={handleAddItem}
-      />
-
-      <EditMenuItemModal
-        visible={editModalVisible}
-        item={editingItem}
-        onCancel={() => {
-          setEditModalVisible(false);
-          setEditingItem(null);
-        }}
-        onSubmit={handleEditItem}
-      />
+            {!collapsed && (
+              <div style={{ marginTop: 8 }}>
+                <Text strong style={{ color: customStyles.colors.textPrimary }}>
+                  {merchant.name}
+                </Text>
+              </div>
+            )}
+          </LogoSection>
+          
+          <StyledMenu
+            mode="inline"
+            selectedKeys={[currentPage]}
+            onClick={({ key }) => handleMenuClick(key)}
+            items={menuConfig}
+          />
+        </StyledSider>
+        
+        <Content>
+          <ContentContainer>
+            {renderContent()}
+          </ContentContainer>
+        </Content>
+      </StyledLayout>
     </PageContainer>
   );
 };

@@ -11,6 +11,7 @@ import UserProfile from './pages/UserProfile';
 import Login from './pages/auth/login';
 import Register from './pages/auth/register';
 import MerchantDashboard from './pages/merchant/dashboard';
+import MerchantCenter from './pages/merchant/MerchantCenter';
 import { useAuth } from './contexts/AuthContext';
 import { useMerchantAuth } from './contexts/MerchantAuthContext';
 
@@ -50,6 +51,11 @@ function App() {
       
       {/* Merchant Routes */}
       <Route path="/merchant/dashboard" element={
+        <ProtectedMerchantRoute>
+          <MerchantDashboard />
+        </ProtectedMerchantRoute>
+      } />
+      <Route path="/merchant/center" element={
         <ProtectedMerchantRoute>
           <MerchantDashboard />
         </ProtectedMerchantRoute>

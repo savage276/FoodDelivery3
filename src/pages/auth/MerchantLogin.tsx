@@ -1,6 +1,7 @@
 import React from 'react';
-import { Form, Input, Button, Typography, Space } from 'antd';
+import { Form, Input, Button, Typography, Space, Divider } from 'antd';
 import { Mail, Lock } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { useMerchantAuth } from '../../contexts/MerchantAuthContext';
 import { customStyles } from '../../styles/theme';
@@ -83,7 +84,17 @@ const MerchantLogin: React.FC = () => {
         </Button>
       </Form.Item>
 
-      <div style={{ textAlign: 'center' }}>
+      <Divider>
+        <Text type="secondary">还没有账号？</Text>
+      </Divider>
+
+      <Link to="/register?tab=merchant">
+        <Button block size="large">
+          注册新账号
+        </Button>
+      </Link>
+
+      <div style={{ textAlign: 'center', marginTop: '16px' }}>
         <Text type="secondary" style={{ fontSize: '12px' }}>
           登录即表示您同意我们的商家服务条款
         </Text>
