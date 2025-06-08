@@ -296,7 +296,7 @@ const MerchantDetail: React.FC = () => {
           title="商家不存在"
           subTitle="抱歉，您访问的商家不存在或已下线"
           extra={
-            <Button type="primary" onClick={() => navigate('/')}>
+            <Button type="primary\" onClick={() => navigate('/')}>
               返回首页
             </Button>
           }

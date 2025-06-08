@@ -456,7 +456,7 @@ const MerchantDashboard: React.FC = () => {
               title="菜品加载失败"
               subTitle="请稍后重试"
               extra={
-                <Button type="primary" onClick={() => refetch()}>
+                <Button type="primary\" onClick={() => refetch()}>
                   重新加载
                 </Button>
               }
