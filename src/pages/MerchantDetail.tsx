@@ -10,7 +10,8 @@ import {
   Anchor,
   Collapse,
   Result,
-  Affix
+  Affix,
+  Spin
 } from 'antd';
 import { 
   CheckCircle, 
@@ -29,11 +30,11 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import MenuItemCard from '../components/MenuItemCard';
 import LoadingSkeleton from '../components/LoadingSkeleton';
-import { MenuItem } from '../types';
 import { customStyles } from '../styles/theme';
 import { useFavorite } from '../contexts/FavoriteContext';
-import { useMerchant } from '../contexts/MerchantContext';
 import BackButton from '../components/BackButton';
+import { useMerchant } from '../hooks/useMerchant';
+import { useMenu } from '../hooks/useMenu';
 
 const { Title, Text, Paragraph } = Typography;
 const { TabPane } = Tabs;
@@ -205,191 +206,41 @@ const FavoriteButton = styled(Button)<{ $isFavorite: boolean }>`
   }
 `;
 
-const mockMenuItems: Record<string, MenuItem[]> = {
-  '特色推荐': [
-    {
-      id: 'm1',
-      name: '脆皮烧鸭',
-      description: '选用优质鸭肉，传统粤式烧制，外皮金黄酥脆，肉质鲜嫩多汁',
-      price: 68,
-      image: 'https://images.pexels.com/photos/2611917/pexels-photo-2611917.jpeg',
-      category: '特色推荐',
-      isPopular: true
-    },
-    {
-      id: 'm2',
-      name: '白切鸡',
-      description: '选用本地散养鸡，配以特制姜葱酱，肉质细嫩，口感鲜美',
-      price: 48,
-      image: 'https://images.pexels.com/photos/2611917/pexels-photo-2611917.jpeg',
-      category: '特色推荐',
-      isPopular: true
-    }
-  ],
-  '粤式烧腊': [
-    {
-      id: 'r1',
-      name: '蜜汁叉烧',
-      description: '精选五花肉，秘制蜜汁腌制，烧制入味，肥瘦均匀',
-      price: 42,
-      image: 'https://images.pexels.com/photos/2611917/pexels-photo-2611917.jpeg',
-      category: '粤式烧腊',
-      isPopular: true
-    },
-    {
-      id: 'r2',
-      name: '油鸡',
-      description: '传统工艺制作，皮爽肉滑，配以特制酱料',
-      price: 38,
-      image: 'https://images.pexels.com/photos/2611917/pexels-photo-2611917.jpeg',
-      category: '粤式烧腊'
-    },
-    {
-      id: 'r3',
-      name: '烧肉',
-      description: '五层肉烧制，皮脆肉嫩，口感层次丰富',
-      price: 45,
-      image: 'https://images.pexels.com/photos/2611917/pexels-photo-2611917.jpeg',
-      category: '粤式烧腊',
-      isPopular: true
-    }
-  ],
-  '粥品': [
-    {
-      id: 'c1',
-      name: '皮蛋瘦肉粥',
-      description: '选用优质大米熬制，配以皮蛋和瘦肉，浓稠绵密',
-      price: 22,
-      image: 'https://images.pexels.com/photos/2611917/pexels-photo-2611917.jpeg',
-      category: '粥品',
-      isPopular: true
-    },
-    {
-      id: 'c2',
-      name: '海鲜粥',
-      description: '配料丰富，有虾仁、蛤蜊、鱿鱼等海鲜，鲜美可口',
-      price: 32,
-      image: 'https://images.pexels.com/photos/2611917/pexels-photo-2611917.jpeg',
-      category: '粥品'
-    }
-  ],
-  '炖汤': [
-    {
-      id: 's1',
-      name: '老火靓汤',
-      description: '每日新鲜炖煮，滋补养生，可选配料',
-      price: 28,
-      image: 'https://images.pexels.com/photos/2611917/pexels-photo-2611917.jpeg',
-      category: '炖汤'
-    },
-    {
-      id: 's2',
-      name: '莲藕排骨汤',
-      description: '精选猪排骨，配以莲藕，清甜滋补',
-      price: 32,
-      image: 'https://images.pexels.com/photos/2611917/pexels-photo-2611917.jpeg',
-      category: '炖汤'
-    }
-  ],
-  '小炒': [
-    {
-      id: 'v1',
-      name: '豉油皇炒面',
-      description: '传统港式炒面，配以豆芽和韭黄，口感爽滑',
-      price: 28,
-      image: 'https://images.pexels.com/photos/2611917/pexels-photo-2611917.jpeg',
-      category: '小炒'
-    },
-    {
-      id: 'v2',
-      name: '干炒牛河',
-      description: '选用优质河粉，配以嫩滑牛肉，锅气十足',
-      price: 32,
-      image: 'https://images.pexels.com/photos/2611917/pexels-photo-2611917.jpeg',
-      category: '小炒',
-      isPopular: true
-    }
-  ],
-  '海鲜': [
-    {
-      id: 'sf1',
-      name: '清蒸海斑',
-      description: '新鲜海斑鱼，清蒸保持原汁原味，肉质细嫩',
-      price: 128,
-      image: 'https://images.pexels.com/photos/2611917/pexels-photo-2611917.jpeg',
-      category: '海鲜'
-    },
-    {
-      id: 'sf2',
-      name: '椒盐濑尿虾',
-      description: '新鲜濑尿虾，椒盐调味，外酥内嫩',
-      price: 88,
-      image: 'https://images.pexels.com/photos/2611917/pexels-photo-2611917.jpeg',
-      category: '海鲜',
-      isPopular: true
-    }
-  ],
-  '点心': [
-    {
-      id: 'd1',
-      name: '虾饺皇',
-      description: '鲜虾馅料，晶莹剔透，皮薄馅大',
-      price: 28,
-      image: 'https://images.pexels.com/photos/2611917/pexels-photo-2611917.jpeg',
-      category: '点心',
-      isPopular: true
-    },
-    {
-      id: 'd2',
-      name: '叉烧包',
-      description: '蜜汁叉烧馅，松软包皮，香甜可口',
-      price: 22,
-      image: 'https://images.pexels.com/photos/2611917/pexels-photo-2611917.jpeg',
-      category: '点心'
-    }
-  ],
-  '甜品': [
-    {
-      id: 'ds1',
-      name: '杨枝甘露',
-      description: '选用泰国青柚，配以西米和芒果，清爽解暑',
-      price: 26,
-      image: 'https://images.pexels.com/photos/2611917/pexels-photo-2611917.jpeg',
-      category: '甜品',
-      isPopular: true
-    },
-    {
-      id: 'ds2',
-      name: '双皮奶',
-      description: '传统港式甜品，滑嫩香甜，口感细腻',
-      price: 22,
-      image: 'https://images.pexels.com/photos/2611917/pexels-photo-2611917.jpeg',
-      category: '甜品'
-    }
-  ]
-};
+const LoadingContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+`;
 
 const MerchantDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
   const [activeCollapse, setActiveCollapse] = useState<string[]>(['notice', 'delivery']);
   const [activeCategory, setActiveCategory] = useState<string>('');
   const { isFavorite, toggleFavorite } = useFavorite();
-  const { getMerchant } = useMerchant();
   
-  const merchant = id ? getMerchant(id) : null;
+  // Use the new hooks
+  const { data: merchant, isLoading: merchantLoading, error: merchantError } = useMerchant(id);
+  const { data: menuItems = [], isLoading: menuLoading, error: menuError } = useMenu(id);
+  
   const favorite = merchant ? isFavorite(merchant.id) : false;
-  const categories = Object.keys(mockMenuItems);
+  
+  // Group menu items by category
+  const menuByCategory = menuItems.reduce((acc, item) => {
+    if (!acc[item.category]) {
+      acc[item.category] = [];
+    }
+    acc[item.category].push(item);
+    return acc;
+  }, {} as Record<string, typeof menuItems>);
+  
+  const categories = Object.keys(menuByCategory);
 
   useEffect(() => {
     if (categories.length > 0) {
       setActiveCategory(categories[0]);
     }
-    
-    setTimeout(() => {
-      setLoading(false);
-    }, 800);
   }, [categories]);
 
   const scrollToCategory = (category: string) => {
@@ -429,7 +280,7 @@ const MerchantDetail: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [categories]);
 
-  if (loading) {
+  if (merchantLoading) {
     return (
       <PageContainer>
         <LoadingSkeleton type="detail" />
@@ -437,7 +288,7 @@ const MerchantDetail: React.FC = () => {
     );
   }
 
-  if (!merchant) {
+  if (merchantError || !merchant) {
     return (
       <PageContainer>
         <Result
@@ -527,39 +378,59 @@ const MerchantDetail: React.FC = () => {
 
         <ContentContainer>
           <MainContent>
-            <Affix offsetTop={0}>
-              <CategoryNavigation>
-                {categories.map(category => (
-                  <CategoryButton
-                    key={category}
-                    $active={activeCategory === category}
-                    onClick={() => scrollToCategory(category)}
-                  >
-                    {category}
-                  </CategoryButton>
-                ))}
-              </CategoryNavigation>
-            </Affix>
-
-            {categories.map(category => (
-              <div key={category} id={category}>
-                <CategoryHeader>
-                  <Title level={3}>{category}</Title>
-                  <Divider style={{ margin: '12px 0' }} />
-                </CategoryHeader>
-                
-                <div>
-                  {mockMenuItems[category].map(item => (
-                    <MenuItemCard
-                      key={item.id}
-                      item={item}
-                      merchantId={merchant.id}
-                      merchantName={merchant.name}
-                    />
+            {categories.length > 0 && (
+              <Affix offsetTop={0}>
+                <CategoryNavigation>
+                  {categories.map(category => (
+                    <CategoryButton
+                      key={category}
+                      $active={activeCategory === category}
+                      onClick={() => scrollToCategory(category)}
+                    >
+                      {category}
+                    </CategoryButton>
                   ))}
+                </CategoryNavigation>
+              </Affix>
+            )}
+
+            {menuLoading ? (
+              <LoadingContainer>
+                <Spin size="large" />
+              </LoadingContainer>
+            ) : menuError ? (
+              <Result
+                status="error"
+                title="菜单加载失败"
+                subTitle="请稍后重试"
+              />
+            ) : categories.length === 0 ? (
+              <Result
+                status="info"
+                title="暂无菜品"
+                subTitle="该商家暂未上传菜品信息"
+              />
+            ) : (
+              categories.map(category => (
+                <div key={category} id={category}>
+                  <CategoryHeader>
+                    <Title level={3}>{category}</Title>
+                    <Divider style={{ margin: '12px 0' }} />
+                  </CategoryHeader>
+                  
+                  <div>
+                    {menuByCategory[category].map(item => (
+                      <MenuItemCard
+                        key={item.id}
+                        item={item}
+                        merchantId={merchant.id}
+                        merchantName={merchant.name}
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </MainContent>
           
           <SidebarContent>
@@ -598,16 +469,18 @@ const MerchantDetail: React.FC = () => {
               </Panel>
             </StyledCollapse>
 
-            <div>
-              <Title level={5}>菜品分类</Title>
-              {categories.map(category => (
-                <AnchorLink 
-                  key={category} 
-                  href={`#${category}`} 
-                  title={category}
-                />
-              ))}
-            </div>
+            {categories.length > 0 && (
+              <div>
+                <Title level={5}>菜品分类</Title>
+                {categories.map(category => (
+                  <AnchorLink 
+                    key={category} 
+                    href={`#${category}`} 
+                    title={category}
+                  />
+                ))}
+              </div>
+            )}
           </SidebarContent>
         </ContentContainer>
       </PageContainer>

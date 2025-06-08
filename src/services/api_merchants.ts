@@ -35,74 +35,169 @@ class ApiError extends Error {
 // Mock API delay
 const mockDelay = () => new Promise(resolve => setTimeout(resolve, 1000));
 
-// Mock merchant data
-const mockMerchant: Merchant = {
-  id: 'merchant1',
-  name: '金龙餐厅',
-  logo: 'https://images.pexels.com/photos/941861/pexels-photo-941861.jpeg',
-  coverImage: 'https://images.pexels.com/photos/1640772/pexels-photo-1640772.jpeg',
-  cuisine: ['中餐', '粤菜'],
-  rating: 4.8,
-  deliveryTime: 25,
-  deliveryFee: 2.99,
-  minOrder: 15,
-  distance: 1.2,
-  promotions: [
-    { id: 'p1', type: 'discount', description: '新用户下单立减20%' }
-  ],
-  averagePrice: 50,
-  email: 'merchant@example.com',
-  phone: '13800138001',
-  address: '北京市朝阳区某某路123号',
-  description: '正宗粤菜，传承经典口味',
-  isActive: true
+// Mock merchant data - unified with MerchantContext
+const mockMerchants: Record<string, Merchant> = {
+  '1': {
+    id: '1',
+    name: '粤香茶餐厅',
+    logo: 'https://images.pexels.com/photos/941861/pexels-photo-941861.jpeg',
+    coverImage: 'https://images.pexels.com/photos/1640772/pexels-photo-1640772.jpeg',
+    cuisine: ['粤菜', '茶餐厅', '港式'],
+    rating: 4.8,
+    deliveryTime: 25,
+    deliveryFee: 2.99,
+    minOrder: 15,
+    distance: 1.2,
+    promotions: [
+      { id: 'p1', type: 'discount', description: '新用户下单立减20%' }
+    ],
+    isNew: false,
+    averagePrice: 50,
+    email: 'merchant@example.com',
+    phone: '13800138001',
+    address: '北京市朝阳区某某路123号',
+    description: '正宗粤菜，传承经典口味',
+    isActive: true
+  },
+  '2': {
+    id: '2',
+    name: '蜀香坊',
+    logo: 'https://images.pexels.com/photos/2347311/pexels-photo-2347311.jpeg',
+    coverImage: 'https://images.pexels.com/photos/2347311/pexels-photo-2347311.jpeg',
+    cuisine: ['川菜', '火锅', '小吃'],
+    rating: 4.6,
+    deliveryTime: 35,
+    deliveryFee: 3.99,
+    minOrder: 20,
+    distance: 2.1,
+    promotions: [
+      { id: 'p2', type: 'discount', description: '下单满100减20' }
+    ],
+    isNew: false,
+    averagePrice: 75,
+    email: 'sichuan@example.com',
+    phone: '13800138002',
+    address: '北京市海淀区某某路456号',
+    description: '正宗川菜，麻辣鲜香',
+    isActive: true
+  },
+  '3': {
+    id: '3',
+    name: '寿司の神',
+    logo: 'https://images.pexels.com/photos/359993/pexels-photo-359993.jpeg',
+    coverImage: 'https://images.pexels.com/photos/858508/pexels-photo-858508.jpeg',
+    cuisine: ['日料', '寿司', '刺身'],
+    rating: 4.7,
+    deliveryTime: 20,
+    deliveryFee: 3.99,
+    minOrder: 25,
+    distance: 1.8,
+    promotions: [
+      { id: 'p3', type: 'gift', description: '订单满200赠送味增汤' }
+    ],
+    averagePrice: 150,
+    email: 'sushi@example.com',
+    phone: '13800138003',
+    address: '北京市朝阳区某某路789号',
+    description: '新鲜日料，匠心制作',
+    isActive: true
+  }
 };
 
-// Mock menu items
-const mockMenuItems: MenuItem[] = [
-  {
-    id: 'm1',
-    name: '脆皮烧鸭',
-    description: '选用优质鸭肉，传统粤式烧制，外皮金黄酥脆，肉质鲜嫩多汁',
-    price: 68,
-    image: 'https://images.pexels.com/photos/2611917/pexels-photo-2611917.jpeg',
-    category: '特色推荐',
-    isPopular: true,
-    stock: 20,
-    isAvailable: true
-  },
-  {
-    id: 'm2',
-    name: '白切鸡',
-    description: '选用本地散养鸡，配以特制姜葱酱，肉质细嫩，口感鲜美',
-    price: 48,
-    image: 'https://images.pexels.com/photos/2611917/pexels-photo-2611917.jpeg',
-    category: '特色推荐',
-    isPopular: true,
-    stock: 15,
-    isAvailable: true
-  },
-  {
-    id: 'm3',
-    name: '蜜汁叉烧',
-    description: '精选五花肉，秘制蜜汁腌制，烧制入味，肥瘦均匀',
-    price: 42,
-    image: 'https://images.pexels.com/photos/2611917/pexels-photo-2611917.jpeg',
-    category: '粤式烧腊',
-    stock: 25,
-    isAvailable: true
-  }
-];
+// Mock menu items by merchant
+const mockMenuItems: Record<string, MenuItem[]> = {
+  '1': [
+    {
+      id: 'm1',
+      name: '脆皮烧鸭',
+      description: '选用优质鸭肉，传统粤式烧制，外皮金黄酥脆，肉质鲜嫩多汁',
+      price: 68,
+      image: 'https://images.pexels.com/photos/2611917/pexels-photo-2611917.jpeg',
+      category: '特色推荐',
+      isPopular: true,
+      stock: 20,
+      isAvailable: true
+    },
+    {
+      id: 'm2',
+      name: '白切鸡',
+      description: '选用本地散养鸡，配以特制姜葱酱，肉质细嫩，口感鲜美',
+      price: 48,
+      image: 'https://images.pexels.com/photos/2611917/pexels-photo-2611917.jpeg',
+      category: '特色推荐',
+      isPopular: true,
+      stock: 15,
+      isAvailable: true
+    },
+    {
+      id: 'm3',
+      name: '蜜汁叉烧',
+      description: '精选五花肉，秘制蜜汁腌制，烧制入味，肥瘦均匀',
+      price: 42,
+      image: 'https://images.pexels.com/photos/2611917/pexels-photo-2611917.jpeg',
+      category: '粤式烧腊',
+      stock: 25,
+      isAvailable: true
+    }
+  ],
+  '2': [
+    {
+      id: 'm4',
+      name: '麻婆豆腐',
+      description: '经典川菜，麻辣鲜香，豆腐嫩滑',
+      price: 28,
+      image: 'https://images.pexels.com/photos/2611917/pexels-photo-2611917.jpeg',
+      category: '川菜经典',
+      isPopular: true,
+      stock: 30,
+      isAvailable: true
+    },
+    {
+      id: 'm5',
+      name: '水煮鱼',
+      description: '鲜嫩鱼片，麻辣汤底，配菜丰富',
+      price: 58,
+      image: 'https://images.pexels.com/photos/2611917/pexels-photo-2611917.jpeg',
+      category: '川菜经典',
+      isSpicy: true,
+      stock: 20,
+      isAvailable: true
+    }
+  ],
+  '3': [
+    {
+      id: 'm6',
+      name: '三文鱼刺身',
+      description: '新鲜三文鱼，口感鲜美，营养丰富',
+      price: 88,
+      image: 'https://images.pexels.com/photos/2611917/pexels-photo-2611917.jpeg',
+      category: '刺身',
+      isPopular: true,
+      stock: 15,
+      isAvailable: true
+    },
+    {
+      id: 'm7',
+      name: '寿司拼盘',
+      description: '多种寿司组合，口味丰富',
+      price: 128,
+      image: 'https://images.pexels.com/photos/2611917/pexels-photo-2611917.jpeg',
+      category: '寿司',
+      isPopular: true,
+      stock: 10,
+      isAvailable: true
+    }
+  ]
+};
 
+// Auth functions
 export const merchantLogin = async (credentials: MerchantLoginCredentials): Promise<MerchantAuthResponse> => {
   await mockDelay();
 
-  // Mock validation
   if (!credentials.account || !credentials.password) {
     throw new ApiError('请输入账户和密码');
   }
 
-  // Mock successful login
   if (credentials.account === 'merchant@example.com' && credentials.password === 'password') {
     const token = 'mock-merchant-jwt-token';
     Cookies.set('merchant_auth_token', token);
@@ -110,7 +205,7 @@ export const merchantLogin = async (credentials: MerchantLoginCredentials): Prom
     return {
       success: true,
       data: {
-        merchant: mockMerchant,
+        merchant: mockMerchants['1'], // Default to first merchant
         token
       }
     };
@@ -122,7 +217,6 @@ export const merchantLogin = async (credentials: MerchantLoginCredentials): Prom
 export const merchantRegister = async (data: MerchantRegisterData): Promise<MerchantAuthResponse> => {
   await mockDelay();
 
-  // Mock validation
   if (!data.name || !data.account || !data.password || !data.contact) {
     throw new ApiError('请填写所有必填字段');
   }
@@ -131,10 +225,9 @@ export const merchantRegister = async (data: MerchantRegisterData): Promise<Merc
     throw new ApiError('该账户已被注册');
   }
 
-  // Mock successful registration
   const token = 'mock-merchant-jwt-token';
   const newMerchant = {
-    ...mockMerchant,
+    ...mockMerchants['1'],
     name: data.name,
     email: data.account,
     phone: data.contact
@@ -164,42 +257,79 @@ export const checkMerchantAuth = async (): Promise<MerchantAuthResponse | null> 
   return {
     success: true,
     data: {
-      merchant: mockMerchant,
+      merchant: mockMerchants['1'], // Default to first merchant
       token
     }
   };
 };
 
-export const fetchMerchantMenu = async (): Promise<MenuItem[]> => {
+// Unified API functions for both user and merchant sides
+export const getMerchantById = async (merchantId: string): Promise<Merchant> => {
   await mockDelay();
-  return mockMenuItems;
+  const merchant = mockMerchants[merchantId];
+  if (!merchant) {
+    throw new ApiError('商家不存在');
+  }
+  return merchant;
 };
 
-export const addMenuItem = async (item: Omit<MenuItem, 'id'>): Promise<MenuItem> => {
+export const getMenuByMerchantId = async (merchantId: string): Promise<MenuItem[]> => {
+  await mockDelay();
+  return mockMenuItems[merchantId] || [];
+};
+
+export const getAllMerchants = async (): Promise<Merchant[]> => {
+  await mockDelay();
+  return Object.values(mockMerchants);
+};
+
+// Merchant management functions
+export const fetchMerchantMenu = async (merchantId?: string): Promise<MenuItem[]> => {
+  await mockDelay();
+  // If no merchantId provided, use the first merchant (for demo)
+  const id = merchantId || '1';
+  return mockMenuItems[id] || [];
+};
+
+export const addMenuItem = async (item: Omit<MenuItem, 'id'>, merchantId?: string): Promise<MenuItem> => {
   await mockDelay();
   const newItem: MenuItem = {
     ...item,
     id: `m${Date.now()}`
   };
-  mockMenuItems.push(newItem);
+  
+  const id = merchantId || '1';
+  if (!mockMenuItems[id]) {
+    mockMenuItems[id] = [];
+  }
+  mockMenuItems[id].push(newItem);
+  
   return newItem;
 };
 
-export const updateMenuItem = async (id: string, item: Partial<MenuItem>): Promise<MenuItem> => {
+export const updateMenuItem = async (itemId: string, item: Partial<MenuItem>, merchantId?: string): Promise<MenuItem> => {
   await mockDelay();
-  const index = mockMenuItems.findIndex(menuItem => menuItem.id === id);
+  const id = merchantId || '1';
+  const menuItems = mockMenuItems[id] || [];
+  const index = menuItems.findIndex(menuItem => menuItem.id === itemId);
+  
   if (index === -1) {
     throw new ApiError('菜品不存在');
   }
-  mockMenuItems[index] = { ...mockMenuItems[index], ...item };
-  return mockMenuItems[index];
+  
+  mockMenuItems[id][index] = { ...mockMenuItems[id][index], ...item };
+  return mockMenuItems[id][index];
 };
 
-export const deleteMenuItem = async (id: string): Promise<void> => {
+export const deleteMenuItem = async (itemId: string, merchantId?: string): Promise<void> => {
   await mockDelay();
-  const index = mockMenuItems.findIndex(menuItem => menuItem.id === id);
+  const id = merchantId || '1';
+  const menuItems = mockMenuItems[id] || [];
+  const index = menuItems.findIndex(menuItem => menuItem.id === itemId);
+  
   if (index === -1) {
     throw new ApiError('菜品不存在');
   }
-  mockMenuItems.splice(index, 1);
+  
+  mockMenuItems[id].splice(index, 1);
 };
