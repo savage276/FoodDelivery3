@@ -7,6 +7,7 @@ import SearchBar from '../components/SearchBar';
 import MerchantCard from '../components/MerchantCard';
 import { Merchant } from '../types';
 import { customStyles } from '../styles/theme';
+import { useAllMerchants } from '../hooks/useAllMerchants';
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
@@ -149,69 +150,6 @@ const ViewAllButton = styled(Button)`
   }
 `;
 
-// Mock data
-const mockMerchants: Merchant[] = [
-  {
-    id: '1',
-    name: '金龙餐厅',
-    logo: 'https://images.pexels.com/photos/941861/pexels-photo-941861.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-    coverImage: 'https://images.pexels.com/photos/1640772/pexels-photo-1640772.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-    cuisine: ['中餐', '亚洲菜'],
-    rating: 4.8,
-    deliveryTime: 25,
-    deliveryFee: 2.99,
-    minOrder: 15,
-    distance: 1.2,
-    promotions: [
-      { id: 'p1', type: 'discount', description: '新用户下单立减20%' }
-    ],
-    isNew: true
-  },
-  {
-    id: '2',
-    name: '意面天堂',
-    logo: 'https://images.pexels.com/photos/1438672/pexels-photo-1438672.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-    coverImage: 'https://images.pexels.com/photos/1527603/pexels-photo-1527603.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-    cuisine: ['意大利菜', '地中海'],
-    rating: 4.5,
-    deliveryTime: 30,
-    deliveryFee: 1.99,
-    minOrder: 20,
-    distance: 2.4,
-    promotions: [
-      { id: 'p2', type: 'freeDelivery', description: '订单满30元免配送费' }
-    ]
-  },
-  {
-    id: '3',
-    name: '寿司速递',
-    logo: 'https://images.pexels.com/photos/359993/pexels-photo-359993.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-    coverImage: 'https://images.pexels.com/photos/858508/pexels-photo-858508.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-    cuisine: ['日本料理', '亚洲菜'],
-    rating: 4.7,
-    deliveryTime: 20,
-    deliveryFee: 3.99,
-    minOrder: 25,
-    distance: 1.8,
-    promotions: [
-      { id: 'p3', type: 'gift', description: '订单满35元赠送味增汤' }
-    ]
-  },
-  {
-    id: '4',
-    name: '墨西哥风情',
-    logo: 'https://images.pexels.com/photos/2087748/pexels-photo-2087748.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-    coverImage: 'https://images.pexels.com/photos/4958641/pexels-photo-4958641.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-    cuisine: ['墨西哥菜', '拉美菜'],
-    rating: 4.3,
-    deliveryTime: 35,
-    deliveryFee: 0,
-    minOrder: 15,
-    distance: 3.1,
-    promotions: []
-  }
-];
-
 const categories = [
   { id: 1, name: '中餐', image: 'https://images.pexels.com/photos/2347311/pexels-photo-2347311.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2' },
   { id: 2, name: '日料', image: 'https://images.pexels.com/photos/858508/pexels-photo-858508.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2' },
@@ -226,6 +164,9 @@ const categories = [
 const Home: React.FC = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('nearby');
+  
+  // Use the real-time merchant data
+  const { data: merchants = [], isLoading, error } = useAllMerchants();
   
   const handleSearch = (keyword: string, filters: any) => {
     navigate('/merchants', { 
@@ -244,6 +185,20 @@ const Home: React.FC = () => {
         }
       }
     });
+  };
+  
+  // Filter merchants based on active tab
+  const getFilteredMerchants = () => {
+    switch (activeTab) {
+      case 'popular':
+        return merchants.filter(m => m.rating >= 4.5).slice(0, 4);
+      case 'new':
+        return merchants.filter(m => m.isNew).slice(0, 4);
+      case 'topRated':
+        return merchants.sort((a, b) => b.rating - a.rating).slice(0, 4);
+      default:
+        return merchants.slice(0, 4);
+    }
   };
   
   return (
@@ -301,13 +256,23 @@ const Home: React.FC = () => {
               <TabPane tab="好评" key="topRated" />
             </Tabs>
             
-            <Row gutter={[16, 16]}>
-              {mockMerchants.map(merchant => (
-                <Col xs={24} sm={12} md={8} lg={6} key={merchant.id}>
-                  <MerchantCard merchant={merchant} />
-                </Col>
-              ))}
-            </Row>
+            {isLoading ? (
+              <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                <Text>加载中...</Text>
+              </div>
+            ) : error ? (
+              <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                <Text type="danger">加载失败，请刷新重试</Text>
+              </div>
+            ) : (
+              <Row gutter={[16, 16]}>
+                {getFilteredMerchants().map(merchant => (
+                  <Col xs={24} sm={12} md={8} lg={6} key={merchant.id}>
+                    <MerchantCard merchant={merchant} />
+                  </Col>
+                ))}
+              </Row>
+            )}
             
             <div style={{ textAlign: 'center', margin: '32px 0' }}>
               <ViewAllButton 
