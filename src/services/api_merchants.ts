@@ -223,12 +223,16 @@ export const merchantLogin = async (credentials: MerchantLoginCredentials): Prom
 
   if (credentials.account === 'merchant@example.com' && credentials.password === 'password') {
     const token = 'mock-merchant-jwt-token';
+    const merchantId = '1'; // Default merchant ID for demo login
+    
     Cookies.set('merchant_auth_token', token, { expires: 7 });
     Cookies.set('merchant_role_type', 'Merchant', { expires: 7 });
+    Cookies.set('current_merchant_id', merchantId, { expires: 7 }); // Store merchant ID
+    
     return {
       success: true,
       data: {
-        merchant: mockMerchants['1'], // Default to first merchant
+        merchant: mockMerchants[merchantId],
         token
       }
     };
@@ -282,6 +286,7 @@ export const merchantRegister = async (data: MerchantRegisterData): Promise<Merc
 
   Cookies.set('merchant_auth_token', token, { expires: 7 });
   Cookies.set('merchant_role_type', 'Merchant', { expires: 7 });
+  Cookies.set('current_merchant_id', newId, { expires: 7 }); // Store new merchant ID
   
   return {
     success: true,
@@ -295,6 +300,7 @@ export const merchantRegister = async (data: MerchantRegisterData): Promise<Merc
 export const merchantLogout = () => {
   Cookies.remove('merchant_auth_token');
   Cookies.remove('merchant_role_type');
+  Cookies.remove('current_merchant_id'); // Remove merchant ID
 };
 
 export const checkMerchantAuth = async (): Promise<MerchantAuthResponse | null> => {
@@ -302,10 +308,19 @@ export const checkMerchantAuth = async (): Promise<MerchantAuthResponse | null> 
   if (!token) return null;
 
   await mockDelay();
+  
+  // Get the current merchant ID from cookies
+  const currentMerchantId = Cookies.get('current_merchant_id');
+  if (!currentMerchantId || !mockMerchants[currentMerchantId]) {
+    // If no valid merchant ID found, clear auth and return null
+    merchantLogout();
+    return null;
+  }
+  
   return {
     success: true,
     data: {
-      merchant: mockMerchants['1'], // Default to first merchant
+      merchant: mockMerchants[currentMerchantId], // Return the correct merchant
       token
     }
   };
