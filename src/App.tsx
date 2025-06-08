@@ -10,7 +10,9 @@ import OrderConfirmation from './pages/OrderConfirmation';
 import UserProfile from './pages/UserProfile';
 import Login from './pages/auth/login';
 import Register from './pages/auth/register';
+import MerchantDashboard from './pages/merchant/dashboard';
 import { useAuth } from './contexts/AuthContext';
+import { useMerchantAuth } from './contexts/MerchantAuthContext';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { role, loading } = useAuth();
@@ -20,7 +22,21 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   }
 
   if (!role) {
-    return <Navigate to="/login\" replace />;
+    return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+const ProtectedMerchantRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { merchant, loading } = useMerchantAuth();
+
+  if (loading) {
+    return null; // Or a loading spinner
+  }
+
+  if (!merchant) {
+    return <Navigate to="/login?tab=merchant" replace />;
   }
 
   return <>{children}</>;
@@ -32,6 +48,14 @@ function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       
+      {/* Merchant Routes */}
+      <Route path="/merchant/dashboard" element={
+        <ProtectedMerchantRoute>
+          <MerchantDashboard />
+        </ProtectedMerchantRoute>
+      } />
+      
+      {/* User Routes */}
       <Route path="/" element={
         <ProtectedRoute>
           <MainLayout />

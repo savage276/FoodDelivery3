@@ -10,6 +10,29 @@ export interface User {
   settings: UserSettings;
 }
 
+export interface Merchant {
+  id: string;
+  name: string;
+  logo: string;
+  coverImage: string;
+  cuisine: string[];
+  rating: number;
+  deliveryTime: number;
+  deliveryFee: number;
+  minOrder: number;
+  distance: number;
+  promotions: Promotion[];
+  isNew?: boolean;
+  isFavorite?: boolean;
+  averagePrice: number;
+  // Merchant-specific fields
+  email?: string;
+  phone?: string;
+  address?: string;
+  description?: string;
+  isActive?: boolean;
+}
+
 export interface Address {
   id: string;
   label: string;
@@ -41,23 +64,6 @@ export interface UserSettings {
   };
 }
 
-export interface Merchant {
-  id: string;
-  name: string;
-  logo: string;
-  coverImage: string;
-  cuisine: string[];
-  rating: number;
-  deliveryTime: number;
-  deliveryFee: number;
-  minOrder: number;
-  distance: number;
-  promotions: Promotion[];
-  isNew?: boolean;
-  isFavorite?: boolean;
-  averagePrice: number;
-}
-
 export interface Promotion {
   id: string;
   type: 'discount' | 'gift' | 'freeDelivery';
@@ -74,6 +80,8 @@ export interface MenuItem {
   isSpicy?: boolean;
   isPopular?: boolean;
   isVegetarian?: boolean;
+  stock?: number;
+  isAvailable?: boolean;
 }
 
 export interface CartItem extends MenuItem {

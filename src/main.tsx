@@ -6,6 +6,7 @@ import store from './store'
 import { ConfigProvider } from 'antd';
 import App from './App';
 import { AuthProvider } from './contexts/AuthContext';
+import { MerchantAuthProvider } from './contexts/MerchantAuthContext';
 import { CartProvider } from './contexts/CartContext';
 import { FavoriteProvider } from './contexts/FavoriteContext';
 import { OrderProvider } from './contexts/OrderContext';
@@ -20,17 +21,19 @@ createRoot(document.getElementById('root')!).render(
       <BrowserRouter>
         <ConfigProvider theme={theme}>
           <AuthProvider>
-            <UserProvider>
-              <MerchantProvider>
-                <OrderProvider>
-                  <FavoriteProvider>
-                    <CartProvider>
-                      <App />
-                    </CartProvider>
-                  </FavoriteProvider>
-                </OrderProvider>
-              </MerchantProvider>
-            </UserProvider>
+            <MerchantAuthProvider>
+              <UserProvider>
+                <MerchantProvider>
+                  <OrderProvider>
+                    <FavoriteProvider>
+                      <CartProvider>
+                        <App />
+                      </CartProvider>
+                    </FavoriteProvider>
+                  </OrderProvider>
+                </MerchantProvider>
+              </UserProvider>
+            </MerchantAuthProvider>
           </AuthProvider>
         </ConfigProvider>
       </BrowserRouter>
