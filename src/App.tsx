@@ -22,7 +22,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   }
 
   if (!role) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login\" replace />;
   }
 
   return <>{children}</>;
@@ -36,7 +36,7 @@ const ProtectedMerchantRoute: React.FC<{ children: React.ReactNode }> = ({ child
   }
 
   if (!merchant) {
-    return <Navigate to="/login?tab=merchant" replace />;
+    return <Navigate to="/login?tab=merchant\" replace />;
   }
 
   return <>{children}</>;
