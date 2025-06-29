@@ -30,10 +30,14 @@ import {
   ShoppingCart
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import styled from 'styled-components';
 import { CartItem, Address, Order } from '../types';
 import { customStyles } from '../styles/theme';
 import { useCart } from '../contexts/CartContext';
+import { useAuth } from '../contexts/AuthContext';
+import { useMerchantAuth } from '../contexts/MerchantAuthContext';
+import { addOrder } from '../services/api_merchants';
 import BackButton from '../components/BackButton';
 
 const { Title, Text, Paragraph } = Typography;
@@ -184,6 +188,9 @@ const mockAddresses: Address[] = [
 
 const Checkout: React.FC = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { role } = useAuth();
+  const { merchant } = useMerchantAuth();
   const { state: cartState, clearCart } = useCart();
   const [currentStep, setCurrentStep] = useState(0);
   const [form] = Form.useForm();
@@ -229,33 +236,49 @@ const Checkout: React.FC = () => {
     setShowConfirmModal(true);
   };
   
-  const confirmOrder = () => {
+  const confirmOrder = async () => {
     setShowConfirmModal(false);
     setOrderProcessing(true);
     
-    // Create new order object
-    const newOrder: Order = {
-      id: `ORD${Date.now()}`,
-      merchantId: cartState.merchantId!,
-      merchantName: cartState.merchantName!,
-      items: cartState.items,
-      totalPrice: total,
-      deliveryFee: deliveryFee,
-      status: 'confirmed',
-      createdAt: new Date().toISOString(),
-      estimatedDeliveryTime: '30-45分钟',
-      address: mockAddresses.find(addr => addr.id === selectedAddress) || mockAddresses[0],
-      paymentMethod: paymentMethod as 'card' | 'cash'
-    };
-    
-    // 模拟订单处理
-    setTimeout(() => {
-      setOrderProcessing(false);
+    try {
+      // Create new order object
+      const newOrderData: Omit<Order, 'id'> = {
+        merchantId: cartState.merchantId!,
+        merchantName: cartState.merchantName!,
+        userId: role?.id || 'user1',
+        userName: role?.name || '用户',
+        items: cartState.items,
+        totalPrice: total,
+        deliveryFee: deliveryFee,
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+        estimatedDeliveryTime: '30-45分钟',
+        address: mockAddresses.find(addr => addr.id === selectedAddress) || mockAddresses[0],
+        paymentMethod: paymentMethod as 'card' | 'cash'
+      };
+      
+      // Add order to backend
+      const createdOrder = await addOrder(newOrderData);
+      
+      // Invalidate queries to refresh order lists
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['orders', 'user', role?.id] }),
+        queryClient.invalidateQueries({ queryKey: ['orders', 'merchant', cartState.merchantId] }),
+        queryClient.invalidateQueries({ queryKey: ['orders'] }) // Invalidate all order queries
+      ]);
+      
       // Clear cart after successful order
       clearCart();
-      // Pass the order data through navigation
-      navigate('/order-confirmation', { state: { order: newOrder } });
-    }, 2000);
+      
+      // Navigate to confirmation page
+      navigate('/order-confirmation', { state: { order: createdOrder } });
+      
+    } catch (error) {
+      console.error('Order creation failed:', error);
+      // Handle error appropriately
+    } finally {
+      setOrderProcessing(false);
+    }
   };
   
   const renderDeliveryStep = () => {
