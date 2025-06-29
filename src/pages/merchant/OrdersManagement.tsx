@@ -94,21 +94,27 @@ const OrdersManagement: React.FC = () => {
     merchantId: merchant?.id 
   });
 
+  console.log('🏪 OrdersManagement: Component rendered with merchant:', merchant?.id, 'orders:', orders.length, 'loading:', isLoading, 'error:', error);
+
   const handleStatusUpdate = async (orderId: string, status: Order['status']) => {
+    console.log('🔄 OrdersManagement handleStatusUpdate: Updating order', orderId, 'to status', status);
     try {
       await updateOrderStatus(orderId, status);
       message.success('订单状态更新成功');
     } catch (error) {
+      console.error('🔄 OrdersManagement handleStatusUpdate: Error updating status:', error);
       message.error('更新失败，请重试');
     }
   };
 
   const handleViewDetails = (order: Order) => {
+    console.log('👁️ OrdersManagement handleViewDetails: Viewing order details for:', order.id);
     setSelectedOrder(order);
     setDetailModalVisible(true);
   };
 
   const handleRefresh = () => {
+    console.log('🔄 OrdersManagement handleRefresh: Refreshing orders data');
     refetch();
     message.success('数据已刷新');
   };
@@ -131,6 +137,8 @@ const OrdersManagement: React.FC = () => {
     return statusMatch && dateMatch;
   });
 
+  console.log('🏪 OrdersManagement: Filtered orders:', filteredOrders.length, 'from total:', orders.length);
+
   // Calculate statistics
   const todayOrders = orders.filter(order => 
     dayjs(order.createdAt).isSame(dayjs(), 'day')
@@ -146,6 +154,7 @@ const OrdersManagement: React.FC = () => {
     : 0;
 
   if (!merchant) {
+    console.log('🏪 OrdersManagement: No merchant found, showing error');
     return (
       <Result
         status="error"
@@ -156,6 +165,7 @@ const OrdersManagement: React.FC = () => {
   }
 
   if (isLoading) {
+    console.log('🏪 OrdersManagement: Showing loading state');
     return (
       <LoadingContainer>
         <Spin size="large" />
@@ -164,6 +174,7 @@ const OrdersManagement: React.FC = () => {
   }
 
   if (error) {
+    console.log('🏪 OrdersManagement: Showing error state:', error);
     return (
       <Result
         status="error"
@@ -177,6 +188,8 @@ const OrdersManagement: React.FC = () => {
       />
     );
   }
+
+  console.log('🏪 OrdersManagement: Rendering main content with', orders.length, 'orders');
 
   return (
     <PageContainer>

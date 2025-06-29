@@ -235,17 +235,21 @@ const saveMenuItemsToStorage = (menuItems: Record<string, MenuItem[]>) => {
 };
 
 const loadOrdersFromStorage = (): Order[] => {
+  console.log('📂 loadOrdersFromStorage: Loading orders from localStorage...');
   try {
     const stored = localStorage.getItem(ORDERS_STORAGE_KEY);
     if (stored) {
-      return JSON.parse(stored);
+      const orders = JSON.parse(stored);
+      console.log('📂 loadOrdersFromStorage: Found', orders.length, 'orders in localStorage');
+      console.log('📂 loadOrdersFromStorage: Orders data:', orders);
+      return orders;
     }
   } catch (error) {
-    console.error('Error loading orders from storage:', error);
+    console.error('📂 loadOrdersFromStorage: Error loading orders from storage:', error);
   }
   
   // Return initial mock orders
-  return [
+  const initialOrders = [
     {
       id: 'ORD001',
       merchantId: '1',
@@ -338,14 +342,19 @@ const loadOrdersFromStorage = (): Order[] => {
       paymentMethod: 'card'
     }
   ];
+  
+  console.log('📂 loadOrdersFromStorage: No orders in localStorage, returning initial orders:', initialOrders.length, 'orders');
+  return initialOrders;
 };
 
 const saveOrdersToStorage = (orders: Order[]) => {
+  console.log('💾 saveOrdersToStorage: Saving', orders.length, 'orders to localStorage');
+  console.log('💾 saveOrdersToStorage: Orders data:', orders);
   try {
     localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(orders));
-    console.log('🔄 Orders saved to localStorage:', orders.length, 'orders');
+    console.log('💾 saveOrdersToStorage: Successfully saved orders to localStorage');
   } catch (error) {
-    console.error('Error saving orders to storage:', error);
+    console.error('💾 saveOrdersToStorage: Error saving orders to storage:', error);
   }
 };
 
@@ -361,15 +370,20 @@ type EventCallback = (data: any) => void;
 const eventListeners: Record<string, EventCallback[]> = {};
 
 const emit = (event: string, data: any) => {
-  console.log(`🚀 Emitting event: ${event}`, data);
+  console.log(`🚀 emit: Emitting event '${event}' with data:`, data);
   if (eventListeners[event]) {
-    console.log(`📡 Found ${eventListeners[event].length} listeners for event: ${event}`);
-    eventListeners[event].forEach(callback => {
-      console.log(`📞 Calling listener for event: ${event}`);
-      callback(data);
+    console.log(`📡 emit: Found ${eventListeners[event].length} listeners for event '${event}'`);
+    eventListeners[event].forEach((callback, index) => {
+      console.log(`📞 emit: Calling listener ${index + 1} for event '${event}'`);
+      try {
+        callback(data);
+        console.log(`✅ emit: Successfully called listener ${index + 1} for event '${event}'`);
+      } catch (error) {
+        console.error(`❌ emit: Error calling listener ${index + 1} for event '${event}':`, error);
+      }
     });
   } else {
-    console.log(`⚠️ No listeners found for event: ${event}`);
+    console.log(`⚠️ emit: No listeners found for event '${event}'`);
   }
 };
 
@@ -378,13 +392,14 @@ const on = (event: string, callback: EventCallback) => {
     eventListeners[event] = [];
   }
   eventListeners[event].push(callback);
-  console.log(`👂 Added listener for event: ${event}. Total listeners: ${eventListeners[event].length}`);
+  console.log(`👂 on: Added listener for event '${event}'. Total listeners: ${eventListeners[event].length}`);
 };
 
 const off = (event: string, callback: EventCallback) => {
   if (eventListeners[event]) {
+    const initialLength = eventListeners[event].length;
     eventListeners[event] = eventListeners[event].filter(cb => cb !== callback);
-    console.log(`🔇 Removed listener for event: ${event}. Remaining listeners: ${eventListeners[event].length}`);
+    console.log(`🔇 off: Removed listener for event '${event}'. Remaining listeners: ${eventListeners[event].length} (was ${initialLength})`);
   }
 };
 
@@ -546,81 +561,98 @@ export const getAllMerchants = async (): Promise<Merchant[]> => {
 
 // Order management functions - FIXED to always read from localStorage
 export const fetchMerchantOrders = async (merchantId?: string): Promise<Order[]> => {
-  console.log('🔍 fetchMerchantOrders called with merchantId:', merchantId);
+  console.log('🔍 fetchMerchantOrders: Called with merchantId:', merchantId);
   await mockDelay();
   
   // Always load fresh data from localStorage
   const currentOrders = loadOrdersFromStorage();
+  console.log('🔍 fetchMerchantOrders: Loaded', currentOrders.length, 'orders from localStorage');
   
   const currentMerchantId = merchantId || Cookies.get('current_merchant_id');
+  console.log('🔍 fetchMerchantOrders: Using merchantId:', currentMerchantId);
+  
   if (!currentMerchantId) {
     throw new ApiError('商家ID不存在');
   }
   
-  const orders = currentOrders.filter(order => order.merchantId === currentMerchantId);
-  console.log('📦 fetchMerchantOrders returning orders:', orders.length, 'orders for merchant', currentMerchantId);
-  return orders;
+  const filteredOrders = currentOrders.filter(order => order.merchantId === currentMerchantId);
+  console.log('🔍 fetchMerchantOrders: Filtered to', filteredOrders.length, 'orders for merchant', currentMerchantId);
+  console.log('🔍 fetchMerchantOrders: Returning orders:', filteredOrders);
+  
+  return filteredOrders;
 };
 
 export const fetchUserOrders = async (userId: string): Promise<Order[]> => {
-  console.log('🔍 fetchUserOrders called with userId:', userId);
+  console.log('🔍 fetchUserOrders: Called with userId:', userId);
   await mockDelay();
   
   // Always load fresh data from localStorage
   const currentOrders = loadOrdersFromStorage();
+  console.log('🔍 fetchUserOrders: Loaded', currentOrders.length, 'orders from localStorage');
   
-  const orders = currentOrders.filter(order => order.userId === userId);
-  console.log('📦 fetchUserOrders returning orders:', orders.length, 'orders for user', userId);
-  return orders;
+  const filteredOrders = currentOrders.filter(order => order.userId === userId);
+  console.log('🔍 fetchUserOrders: Filtered to', filteredOrders.length, 'orders for user', userId);
+  console.log('🔍 fetchUserOrders: Returning orders:', filteredOrders);
+  
+  return filteredOrders;
 };
 
 export const updateOrderStatus = async (orderId: string, status: Order['status']): Promise<Order> => {
-  console.log('🔄 updateOrderStatus called:', { orderId, status });
+  console.log('🔄 updateOrderStatus: Called with orderId:', orderId, 'status:', status);
   await mockDelay();
   
   // Always load fresh data from localStorage
   const currentOrders = loadOrdersFromStorage();
+  console.log('🔄 updateOrderStatus: Loaded', currentOrders.length, 'orders from localStorage');
   
   const orderIndex = currentOrders.findIndex(order => order.id === orderId);
   if (orderIndex === -1) {
+    console.error('🔄 updateOrderStatus: Order not found with id:', orderId);
     throw new ApiError('订单不存在');
   }
   
+  console.log('🔄 updateOrderStatus: Found order at index:', orderIndex);
+  console.log('🔄 updateOrderStatus: Order before update:', currentOrders[orderIndex]);
+  
   currentOrders[orderIndex].status = status;
+  console.log('🔄 updateOrderStatus: Order after update:', currentOrders[orderIndex]);
   
   // Save updated orders back to localStorage
   saveOrdersToStorage(currentOrders);
   
   // Emit event for real-time updates
-  console.log('🚀 About to emit orderStatusUpdated event');
+  console.log('🔄 updateOrderStatus: About to emit orderStatusUpdated event');
   emit('orderStatusUpdated', { orderId, status, order: currentOrders[orderIndex] });
+  console.log('🔄 updateOrderStatus: orderStatusUpdated event emitted');
   
   return { ...currentOrders[orderIndex] };
 };
 
 export const addOrder = async (order: Omit<Order, 'id'>): Promise<Order> => {
-  console.log('➕ addOrder called with order data:', order);
+  console.log('➕ addOrder: Called with order data:', order);
   await mockDelay();
   
   // Always load fresh data from localStorage
   const currentOrders = loadOrdersFromStorage();
+  console.log('➕ addOrder: Loaded', currentOrders.length, 'existing orders from localStorage');
   
   const newOrder: Order = {
     ...order,
     id: `ORD${Date.now()}`
   };
   
-  console.log('📝 Created new order:', newOrder);
+  console.log('➕ addOrder: Created new order:', newOrder);
   
   currentOrders.unshift(newOrder);
+  console.log('➕ addOrder: Added order to list, now have', currentOrders.length, 'orders');
   
   // Save updated orders back to localStorage
   saveOrdersToStorage(currentOrders);
   
   // Emit event for real-time updates
-  console.log('🚀 About to emit orderAdded event for order:', newOrder.id);
+  console.log('➕ addOrder: About to emit orderAdded event for order:', newOrder.id);
   emit('orderAdded', newOrder);
-  console.log('✅ orderAdded event emitted successfully');
+  console.log('➕ addOrder: orderAdded event emitted successfully');
   
   return { ...newOrder };
 };

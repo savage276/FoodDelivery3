@@ -195,7 +195,10 @@ const UserProfile: React.FC = () => {
   };
 
   const renderOrdersTab = () => {
+    console.log('🎨 UserProfile renderOrdersTab: Rendering with orders:', orders.length, 'loading:', ordersLoading, 'error:', ordersError);
+    
     if (ordersLoading) {
+      console.log('🎨 UserProfile renderOrdersTab: Showing loading state');
       return (
         <LoadingContainer>
           <Spin size="large" />
@@ -204,6 +207,7 @@ const UserProfile: React.FC = () => {
     }
 
     if (ordersError) {
+      console.log('🎨 UserProfile renderOrdersTab: Showing error state:', ordersError);
       return (
         <Result
           status="error"
@@ -219,6 +223,7 @@ const UserProfile: React.FC = () => {
     }
 
     if (orders.length === 0) {
+      console.log('🎨 UserProfile renderOrdersTab: Showing empty state');
       return (
         <Empty 
           description="暂无订单" 
@@ -231,6 +236,7 @@ const UserProfile: React.FC = () => {
       );
     }
 
+    console.log('🎨 UserProfile renderOrdersTab: Showing orders table with', orders.length, 'orders');
     return (
       <div>
         <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -767,6 +773,8 @@ const UserProfile: React.FC = () => {
   if (!user) {
     return <Empty description="请先登录" />;
   }
+
+  console.log('🎨 UserProfile: Rendering with activeTab:', activeTab, 'orders count:', orders.length);
 
   return (
     <PageContainer>
