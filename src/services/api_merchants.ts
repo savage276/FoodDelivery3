@@ -352,7 +352,6 @@ const saveOrdersToStorage = (orders: Order[]) => {
 // Initialize data from localStorage
 let mockMerchants = loadMerchantsFromStorage();
 let mockMenuItems = loadMenuItemsFromStorage();
-let mockOrders = loadOrdersFromStorage();
 
 // Mock API delay
 const mockDelay = () => new Promise(resolve => setTimeout(resolve, 800));
@@ -545,16 +544,20 @@ export const getAllMerchants = async (): Promise<Merchant[]> => {
   });
 };
 
-// Order management functions
+// Order management functions - FIXED to always read from localStorage
 export const fetchMerchantOrders = async (merchantId?: string): Promise<Order[]> => {
   console.log('🔍 fetchMerchantOrders called with merchantId:', merchantId);
   await mockDelay();
+  
+  // Always load fresh data from localStorage
+  const currentOrders = loadOrdersFromStorage();
+  
   const currentMerchantId = merchantId || Cookies.get('current_merchant_id');
   if (!currentMerchantId) {
     throw new ApiError('商家ID不存在');
   }
   
-  const orders = mockOrders.filter(order => order.merchantId === currentMerchantId);
+  const orders = currentOrders.filter(order => order.merchantId === currentMerchantId);
   console.log('📦 fetchMerchantOrders returning orders:', orders.length, 'orders for merchant', currentMerchantId);
   return orders;
 };
@@ -562,7 +565,11 @@ export const fetchMerchantOrders = async (merchantId?: string): Promise<Order[]>
 export const fetchUserOrders = async (userId: string): Promise<Order[]> => {
   console.log('🔍 fetchUserOrders called with userId:', userId);
   await mockDelay();
-  const orders = mockOrders.filter(order => order.userId === userId);
+  
+  // Always load fresh data from localStorage
+  const currentOrders = loadOrdersFromStorage();
+  
+  const orders = currentOrders.filter(order => order.userId === userId);
   console.log('📦 fetchUserOrders returning orders:', orders.length, 'orders for user', userId);
   return orders;
 };
@@ -571,26 +578,32 @@ export const updateOrderStatus = async (orderId: string, status: Order['status']
   console.log('🔄 updateOrderStatus called:', { orderId, status });
   await mockDelay();
   
-  const orderIndex = mockOrders.findIndex(order => order.id === orderId);
+  // Always load fresh data from localStorage
+  const currentOrders = loadOrdersFromStorage();
+  
+  const orderIndex = currentOrders.findIndex(order => order.id === orderId);
   if (orderIndex === -1) {
     throw new ApiError('订单不存在');
   }
   
-  mockOrders[orderIndex].status = status;
+  currentOrders[orderIndex].status = status;
   
-  // Save to localStorage
-  saveOrdersToStorage(mockOrders);
+  // Save updated orders back to localStorage
+  saveOrdersToStorage(currentOrders);
   
   // Emit event for real-time updates
   console.log('🚀 About to emit orderStatusUpdated event');
-  emit('orderStatusUpdated', { orderId, status, order: mockOrders[orderIndex] });
+  emit('orderStatusUpdated', { orderId, status, order: currentOrders[orderIndex] });
   
-  return { ...mockOrders[orderIndex] };
+  return { ...currentOrders[orderIndex] };
 };
 
 export const addOrder = async (order: Omit<Order, 'id'>): Promise<Order> => {
   console.log('➕ addOrder called with order data:', order);
   await mockDelay();
+  
+  // Always load fresh data from localStorage
+  const currentOrders = loadOrdersFromStorage();
   
   const newOrder: Order = {
     ...order,
@@ -599,10 +612,10 @@ export const addOrder = async (order: Omit<Order, 'id'>): Promise<Order> => {
   
   console.log('📝 Created new order:', newOrder);
   
-  mockOrders.unshift(newOrder);
+  currentOrders.unshift(newOrder);
   
-  // Save to localStorage
-  saveOrdersToStorage(mockOrders);
+  // Save updated orders back to localStorage
+  saveOrdersToStorage(currentOrders);
   
   // Emit event for real-time updates
   console.log('🚀 About to emit orderAdded event for order:', newOrder.id);
