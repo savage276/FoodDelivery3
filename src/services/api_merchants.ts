@@ -1,6 +1,6 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
-import { Merchant, MenuItem } from '../types';
+import { Merchant, MenuItem, Order } from '../types';
 
 const API_BASE_URL = '/api';
 
@@ -35,6 +35,7 @@ class ApiError extends Error {
 // Storage keys
 const MERCHANT_STORAGE_KEY = 'mockMerchants';
 const MENU_STORAGE_KEY = 'mockMenuItems';
+const ORDERS_STORAGE_KEY = 'mockOrders';
 
 // Helper functions for localStorage persistence
 const loadMerchantsFromStorage = (): Record<string, Merchant & { password: string }> => {
@@ -233,9 +234,124 @@ const saveMenuItemsToStorage = (menuItems: Record<string, MenuItem[]>) => {
   }
 };
 
+const loadOrdersFromStorage = (): Order[] => {
+  try {
+    const stored = localStorage.getItem(ORDERS_STORAGE_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (error) {
+    console.error('Error loading orders from storage:', error);
+  }
+  
+  // Return initial mock orders
+  return [
+    {
+      id: 'ORD001',
+      merchantId: '1',
+      merchantName: '粤香茶餐厅',
+      userId: 'user1',
+      userName: '张三',
+      items: [
+        {
+          id: 'm1',
+          name: '脆皮烧鸭',
+          description: '选用优质鸭肉，传统粤式烧制',
+          price: 68,
+          image: 'https://images.pexels.com/photos/2611917/pexels-photo-2611917.jpeg',
+          category: '特色推荐',
+          quantity: 1,
+          notes: '不要太辣'
+        }
+      ],
+      totalPrice: 70.99,
+      deliveryFee: 2.99,
+      status: 'confirmed',
+      createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+      estimatedDeliveryTime: '30-45分钟',
+      address: {
+        id: 'addr1',
+        label: '家',
+        city: '北京市',
+        address: '朝阳区某某路123号'
+      },
+      paymentMethod: 'card'
+    },
+    {
+      id: 'ORD002',
+      merchantId: '2',
+      merchantName: '蜀香坊',
+      userId: 'user1',
+      userName: '张三',
+      items: [
+        {
+          id: 'm4',
+          name: '麻婆豆腐',
+          description: '经典川菜，麻辣鲜香',
+          price: 28,
+          image: 'https://images.pexels.com/photos/2611917/pexels-photo-2611917.jpeg',
+          category: '川菜经典',
+          quantity: 2
+        }
+      ],
+      totalPrice: 59.99,
+      deliveryFee: 3.99,
+      status: 'preparing',
+      createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
+      estimatedDeliveryTime: '25-35分钟',
+      address: {
+        id: 'addr1',
+        label: '家',
+        city: '北京市',
+        address: '朝阳区某某路123号'
+      },
+      paymentMethod: 'cash'
+    },
+    {
+      id: 'ORD003',
+      merchantId: '1',
+      merchantName: '粤香茶餐厅',
+      userId: 'user2',
+      userName: '李四',
+      items: [
+        {
+          id: 'm2',
+          name: '白切鸡',
+          description: '选用本地散养鸡',
+          price: 48,
+          image: 'https://images.pexels.com/photos/2611917/pexels-photo-2611917.jpeg',
+          category: '特色推荐',
+          quantity: 1
+        }
+      ],
+      totalPrice: 50.99,
+      deliveryFee: 2.99,
+      status: 'pending',
+      createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+      estimatedDeliveryTime: '30-45分钟',
+      address: {
+        id: 'addr2',
+        label: '公司',
+        city: '北京市',
+        address: '海淀区某某路456号'
+      },
+      paymentMethod: 'card'
+    }
+  ];
+};
+
+const saveOrdersToStorage = (orders: Order[]) => {
+  try {
+    localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(orders));
+  } catch (error) {
+    console.error('Error saving orders to storage:', error);
+  }
+};
+
 // Initialize data from localStorage
 let mockMerchants = loadMerchantsFromStorage();
 let mockMenuItems = loadMenuItemsFromStorage();
+let mockOrders = loadOrdersFromStorage();
 
 // Mock API delay
 const mockDelay = () => new Promise(resolve => setTimeout(resolve, 800));
@@ -417,6 +533,60 @@ export const getAllMerchants = async (): Promise<Merchant[]> => {
     const { password, ...merchantData } = merchant;
     return { ...merchantData };
   });
+};
+
+// Order management functions
+export const fetchMerchantOrders = async (merchantId?: string): Promise<Order[]> => {
+  await mockDelay();
+  const currentMerchantId = merchantId || Cookies.get('current_merchant_id');
+  if (!currentMerchantId) {
+    throw new ApiError('商家ID不存在');
+  }
+  
+  return mockOrders.filter(order => order.merchantId === currentMerchantId);
+};
+
+export const fetchUserOrders = async (userId: string): Promise<Order[]> => {
+  await mockDelay();
+  return mockOrders.filter(order => order.userId === userId);
+};
+
+export const updateOrderStatus = async (orderId: string, status: Order['status']): Promise<Order> => {
+  await mockDelay();
+  
+  const orderIndex = mockOrders.findIndex(order => order.id === orderId);
+  if (orderIndex === -1) {
+    throw new ApiError('订单不存在');
+  }
+  
+  mockOrders[orderIndex].status = status;
+  
+  // Save to localStorage
+  saveOrdersToStorage(mockOrders);
+  
+  // Emit event for real-time updates
+  emit('orderStatusUpdated', { orderId, status, order: mockOrders[orderIndex] });
+  
+  return { ...mockOrders[orderIndex] };
+};
+
+export const addOrder = async (order: Omit<Order, 'id'>): Promise<Order> => {
+  await mockDelay();
+  
+  const newOrder: Order = {
+    ...order,
+    id: `ORD${Date.now()}`
+  };
+  
+  mockOrders.unshift(newOrder);
+  
+  // Save to localStorage
+  saveOrdersToStorage(mockOrders);
+  
+  // Emit event for real-time updates
+  emit('orderAdded', newOrder);
+  
+  return { ...newOrder };
 };
 
 // Merchant management functions with real-time updates

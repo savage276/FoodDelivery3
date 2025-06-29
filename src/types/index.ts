@@ -36,14 +36,17 @@ export interface Merchant {
 export interface Address {
   id: string;
   label: string;
-  recipientName: string;
-  phone: string;
-  province: string;
+  recipientName?: string;
+  phone?: string;
+  province?: string;
   city: string;
-  district: string;
+  district?: string;
   address: string;
-  zipCode: string;
-  isDefault: boolean;
+  zipCode?: string;
+  isDefault?: boolean;
+  // Additional fields for order addresses
+  line1?: string;
+  postalCode?: string;
 }
 
 export interface UserSettings {
@@ -89,11 +92,22 @@ export interface CartItem extends MenuItem {
   notes?: string;
 }
 
+export interface OrderItem {
+  menuItemId: string;
+  menuItemName: string;
+  quantity: number;
+  price: number;
+  notes?: string;
+}
+
 export interface Order {
   id: string;
   merchantId: string;
   merchantName: string;
+  userId: string;
+  userName?: string;
   items: CartItem[];
+  orderItems?: OrderItem[];
   totalPrice: number;
   deliveryFee: number;
   status: 'pending' | 'confirmed' | 'preparing' | 'delivering' | 'delivered' | 'cancelled';

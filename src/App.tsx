@@ -11,7 +11,7 @@ import UserProfile from './pages/UserProfile';
 import Login from './pages/auth/login';
 import Register from './pages/auth/register';
 import MerchantDashboard from './pages/merchant/dashboard';
-import MerchantCenter from './pages/merchant/MerchantCenter';
+import OrdersManagement from './pages/merchant/OrdersManagement';
 import { useAuth } from './contexts/AuthContext';
 import { useMerchantAuth } from './contexts/MerchantAuthContext';
 
@@ -23,7 +23,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   }
 
   if (!role) {
-    return <Navigate to="/login\" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   return <>{children}</>;
@@ -37,7 +37,7 @@ const ProtectedMerchantRoute: React.FC<{ children: React.ReactNode }> = ({ child
   }
 
   if (!merchant) {
-    return <Navigate to="/login?tab=merchant\" replace />;
+    return <Navigate to="/login?tab=merchant" replace />;
   }
 
   return <>{children}</>;
@@ -56,6 +56,11 @@ function App() {
         </ProtectedMerchantRoute>
       } />
       <Route path="/merchant/center" element={
+        <ProtectedMerchantRoute>
+          <MerchantDashboard />
+        </ProtectedMerchantRoute>
+      } />
+      <Route path="/merchant/orders" element={
         <ProtectedMerchantRoute>
           <MerchantDashboard />
         </ProtectedMerchantRoute>

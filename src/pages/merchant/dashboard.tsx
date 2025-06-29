@@ -29,7 +29,8 @@ import {
   TrendingUp,
   User,
   BarChart3,
-  Settings
+  Settings,
+  ShoppingCart
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
@@ -39,6 +40,7 @@ import { customStyles } from '../../styles/theme';
 import AddMenuItemModal from '../../components/merchant/AddMenuItemModal';
 import EditMenuItemModal from '../../components/merchant/EditMenuItemModal';
 import MerchantCenter from './MerchantCenter';
+import OrdersManagement from './OrdersManagement';
 import { useMenu, useAddMenuItem, useUpdateMenuItem, useDeleteMenuItem } from '../../hooks/useMenu';
 
 const { Title, Text } = Typography;
@@ -154,6 +156,8 @@ const MerchantDashboard: React.FC = () => {
     const path = location.pathname;
     if (path.includes('center')) {
       setCurrentPage('center');
+    } else if (path.includes('orders')) {
+      setCurrentPage('order-management');
     } else {
       setCurrentPage('menu');
     }
@@ -207,6 +211,8 @@ const MerchantDashboard: React.FC = () => {
     setCurrentPage(key);
     if (key === 'center') {
       navigate('/merchant/center');
+    } else if (key === 'order-management') {
+      navigate('/merchant/orders');
     } else {
       navigate('/merchant/dashboard');
     }
@@ -219,14 +225,14 @@ const MerchantDashboard: React.FC = () => {
       label: '菜品管理',
     },
     {
+      key: 'order-management',
+      icon: <ShoppingCart size={16} />,
+      label: '订单管理',
+    },
+    {
       key: 'center',
       icon: <User size={16} />,
       label: '商家中心',
-    },
-    {
-      key: 'analytics',
-      icon: <BarChart3 size={16} />,
-      label: '数据分析',
     },
     {
       key: 'settings',
@@ -348,13 +354,8 @@ const MerchantDashboard: React.FC = () => {
       return <MerchantCenter />;
     }
 
-    if (currentPage === 'analytics') {
-      return (
-        <div style={{ textAlign: 'center', padding: '100px 0' }}>
-          <Title level={3}>数据分析</Title>
-          <Text type="secondary">功能开发中...</Text>
-        </div>
-      );
+    if (currentPage === 'order-management') {
+      return <OrdersManagement />;
     }
 
     if (currentPage === 'settings') {
@@ -456,7 +457,7 @@ const MerchantDashboard: React.FC = () => {
               title="菜品加载失败"
               subTitle="请稍后重试"
               extra={
-                <Button type="primary\" onClick={() => refetch()}>
+                <Button type="primary" onClick={() => refetch()}>
                   重新加载
                 </Button>
               }

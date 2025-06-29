@@ -1,6 +1,7 @@
 import Cookies from 'js-cookie';
-import { User } from '../types';
-import axiosInstance from "../utils/axiosInstance"
+import { User, Order } from '../types';
+import { fetchUserOrders as fetchUserOrdersFromMerchants } from './api_merchants';
+
 const API_BASE_URL = '/api';
 
 export interface UserAuthResponse {
@@ -30,7 +31,7 @@ class ApiError extends Error {
   }
 }
 
-// Mock API delay ？？？
+// Mock API delay
 const mockDelay = () => new Promise(resolve => setTimeout(resolve, 1000));
 
 // Mock user data
@@ -85,7 +86,8 @@ export const api_users_login = async (credentials: UserLoginCredentials): Promis
   // Mock successful login
   if (credentials.phone === 'zhangsan@example.com' && credentials.password === 'password') {
     const token = 'mock-jwt-token';
-    Cookies.set('auth_token', token);
+    Cookies.set('auth_token', token, { expires: 7 });
+    Cookies.set('role_type', 'User', { expires: 7 });
     return {
       success: true,
       data: {
@@ -118,7 +120,8 @@ export const api_users_register = async (data: UserRegisterData): Promise<UserAu
     email: data.email
   };
 
-  Cookies.set('auth_token', token);
+  Cookies.set('auth_token', token, { expires: 7 });
+  Cookies.set('role_type', 'User', { expires: 7 });
   return {
     success: true,
     data: {
@@ -145,4 +148,9 @@ export const checkAuth = async (): Promise<UserAuthResponse | null> => {
       token
     }
   };
+};
+
+// Order functions - delegate to merchant API for unified data source
+export const fetchUserOrders = async (userId: string): Promise<Order[]> => {
+  return fetchUserOrdersFromMerchants(userId);
 };

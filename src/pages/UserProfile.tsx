@@ -24,7 +24,9 @@ import {
   Upload,
   Empty,
   Checkbox,
-  message
+  message,
+  Spin,
+  Result
 } from 'antd';
 import { 
   User, 
@@ -45,17 +47,20 @@ import {
   Lock,
   Bell,
   Eye,
-  Shield
+  Shield,
+  RefreshCw
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import dayjs from 'dayjs';
 import { customStyles } from '../styles/theme';
 import { useFavorite } from '../contexts/FavoriteContext';
-import { useOrder } from '../contexts/OrderContext';
+import { useOrders } from '../hooks/useOrders';
 import { useUser } from '../contexts/UserContext';
 import { useAuth } from '../contexts/AuthContext';
 import BackButton from '../components/BackButton';
+import OrderTable from '../components/OrderTable';
+import { Order } from '../types';
 
 const { Title, Text, Paragraph } = Typography;
 const { TabPane } = Tabs;
@@ -141,21 +146,31 @@ const FavoriteCard = styled(Card)`
   }
 `;
 
-const OrderCard = styled(Card)`
-  margin-bottom: 16px;
+const LoadingContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
 `;
 
 const UserProfile: React.FC = () => {
   const navigate = useNavigate();
-  const { user_logout } = useAuth();
+  const { role, user_logout } = useAuth();
   const [activeTab, setActiveTab] = useState('orders');
   const [addressForm] = Form.useForm();
   const [profileForm] = Form.useForm();
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [currentAddress, setCurrentAddress] = useState<string | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [orderDetailVisible, setOrderDetailVisible] = useState(false);
+  
   const { getFavoriteMerchants, toggleFavorite } = useFavorite();
-  const { getOrders, clearOrders } = useOrder();
   const { state: { user }, updateProfile, addAddress, updateAddress, deleteAddress, setDefaultAddress, updateSettings } = useUser();
+  
+  // Use the unified orders hook for user orders
+  const { data: orders = [], isLoading: ordersLoading, error: ordersError, refetch: refetchOrders } = useOrders({ 
+    userId: role?.id 
+  });
 
   const handleLogout = () => {
     Modal.confirm({
@@ -169,63 +184,137 @@ const UserProfile: React.FC = () => {
     });
   };
 
+  const handleViewOrderDetails = (order: Order) => {
+    setSelectedOrder(order);
+    setOrderDetailVisible(true);
+  };
+
+  const handleRefreshOrders = () => {
+    refetchOrders();
+    message.success('订单数据已刷新');
+  };
+
   const renderOrdersTab = () => {
-    const orders = getOrders();
+    if (ordersLoading) {
+      return (
+        <LoadingContainer>
+          <Spin size="large" />
+        </LoadingContainer>
+      );
+    }
+
+    if (ordersError) {
+      return (
+        <Result
+          status="error"
+          title="订单加载失败"
+          subTitle="请稍后重试"
+          extra={
+            <Button type="primary" onClick={handleRefreshOrders}>
+              重新加载
+            </Button>
+          }
+        />
+      );
+    }
 
     if (orders.length === 0) {
-      return <Empty description="暂无订单" />;
+      return (
+        <Empty 
+          description="暂无订单" 
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+        >
+          <Button type="primary" onClick={() => navigate('/')}>
+            去下单
+          </Button>
+        </Empty>
+      );
     }
 
     return (
       <div>
-        <div style={{ marginBottom: '16px', textAlign: 'right' }}>
-          <Popconfirm
-            title="确定要清空所有订单吗？"
-            description="此操作不可撤销"
-            onConfirm={clearOrders}
-            okText="确定"
-            cancelText="取消"
+        <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Text strong>我的订单 ({orders.length})</Text>
+          <Button 
+            icon={<RefreshCw size={16} />}
+            onClick={handleRefreshOrders}
           >
-            <Button danger icon={<Trash2 size={16} />}>
-              清空订单
-            </Button>
-          </Popconfirm>
+            刷新
+          </Button>
         </div>
-        {orders.map(order => (
-          <OrderCard key={order.id}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <div>
-                <Link to={`/merchants/${order.merchantId}`}>
-                  <Text strong style={{ fontSize: '16px' }}>{order.merchantName}</Text>
+        
+        <OrderTable
+          orders={orders}
+          loading={ordersLoading}
+          onViewDetails={handleViewOrderDetails}
+          showUserActions={true}
+        />
+
+        {/* Order Detail Modal */}
+        <Modal
+          title={`订单详情 - ${selectedOrder?.id}`}
+          open={orderDetailVisible}
+          onCancel={() => setOrderDetailVisible(false)}
+          footer={[
+            <Button key="close" onClick={() => setOrderDetailVisible(false)}>
+              关闭
+            </Button>,
+            <Button key="reorder" type="primary">
+              再来一单
+            </Button>
+          ]}
+          width={600}
+        >
+          {selectedOrder && (
+            <div>
+              <div style={{ marginBottom: '16px' }}>
+                <Text strong>商家：</Text>
+                <Link to={`/merchants/${selectedOrder.merchantId}`}>
+                  {selectedOrder.merchantName}
                 </Link>
-                <div>
-                  <Text type="secondary">{new Date(order.createdAt).toLocaleDateString()}</Text>
-                </div>
               </div>
-              <Space>
-                <Tag color="green">{order.status === 'confirmed' ? '已确认' : '已送达'}</Tag>
-                <Text strong>¥{order.totalPrice.toFixed(2)}</Text>
-              </Space>
+              
+              <div style={{ marginBottom: '16px' }}>
+                <Text strong>订单状态：</Text>
+                <Tag color="blue" style={{ marginLeft: '8px' }}>
+                  {selectedOrder.status}
+                </Tag>
+              </div>
+              
+              <div style={{ marginBottom: '16px' }}>
+                <Text strong>下单时间：</Text>
+                <Text style={{ marginLeft: '8px' }}>
+                  {new Date(selectedOrder.createdAt).toLocaleString()}
+                </Text>
+              </div>
+              
+              <Divider />
+              
+              <Title level={5}>订单明细</Title>
+              <List
+                dataSource={selectedOrder.items}
+                renderItem={item => (
+                  <List.Item>
+                    <List.Item.Meta
+                      title={`${item.name} x${item.quantity}`}
+                      description={item.notes && `备注: ${item.notes}`}
+                    />
+                    <div>¥{(item.price * item.quantity).toFixed(2)}</div>
+                  </List.Item>
+                )}
+              />
+              
+              <div style={{ marginTop: '16px', textAlign: 'right' }}>
+                <Space direction="vertical">
+                  <Text>配送费: ¥{selectedOrder.deliveryFee.toFixed(2)}</Text>
+                  <Text strong style={{ fontSize: '16px' }}>
+                    总计: ¥{selectedOrder.totalPrice.toFixed(2)}
+                  </Text>
+                </Space>
+              </div>
             </div>
-            
-            <List
-              dataSource={order.items}
-              renderItem={item => (
-                <List.Item>
-                  <Text>{item.name} x{item.quantity}</Text>
-                </List.Item>
-              )}
-            />
-            
-            <Divider style={{ margin: '12px 0' }} />
-            
-            <Space split={<Divider type="vertical" />}>
-              <Button size="small">查看详情</Button>
-              <Button size="small" type="primary">再来一单</Button>
-              <Button size="small" icon={<Star size={14} />}>评价</Button>
-            </Space>
-          </OrderCard>
-        ))}
+          )}
+        </Modal>
       </div>
     );
   };
