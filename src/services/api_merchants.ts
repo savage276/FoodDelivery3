@@ -343,6 +343,7 @@ const loadOrdersFromStorage = (): Order[] => {
 const saveOrdersToStorage = (orders: Order[]) => {
   try {
     localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(orders));
+    console.log('🔄 Orders saved to localStorage:', orders.length, 'orders');
   } catch (error) {
     console.error('Error saving orders to storage:', error);
   }
@@ -361,8 +362,15 @@ type EventCallback = (data: any) => void;
 const eventListeners: Record<string, EventCallback[]> = {};
 
 const emit = (event: string, data: any) => {
+  console.log(`🚀 Emitting event: ${event}`, data);
   if (eventListeners[event]) {
-    eventListeners[event].forEach(callback => callback(data));
+    console.log(`📡 Found ${eventListeners[event].length} listeners for event: ${event}`);
+    eventListeners[event].forEach(callback => {
+      console.log(`📞 Calling listener for event: ${event}`);
+      callback(data);
+    });
+  } else {
+    console.log(`⚠️ No listeners found for event: ${event}`);
   }
 };
 
@@ -371,11 +379,13 @@ const on = (event: string, callback: EventCallback) => {
     eventListeners[event] = [];
   }
   eventListeners[event].push(callback);
+  console.log(`👂 Added listener for event: ${event}. Total listeners: ${eventListeners[event].length}`);
 };
 
 const off = (event: string, callback: EventCallback) => {
   if (eventListeners[event]) {
     eventListeners[event] = eventListeners[event].filter(cb => cb !== callback);
+    console.log(`🔇 Removed listener for event: ${event}. Remaining listeners: ${eventListeners[event].length}`);
   }
 };
 
@@ -537,21 +547,28 @@ export const getAllMerchants = async (): Promise<Merchant[]> => {
 
 // Order management functions
 export const fetchMerchantOrders = async (merchantId?: string): Promise<Order[]> => {
+  console.log('🔍 fetchMerchantOrders called with merchantId:', merchantId);
   await mockDelay();
   const currentMerchantId = merchantId || Cookies.get('current_merchant_id');
   if (!currentMerchantId) {
     throw new ApiError('商家ID不存在');
   }
   
-  return mockOrders.filter(order => order.merchantId === currentMerchantId);
+  const orders = mockOrders.filter(order => order.merchantId === currentMerchantId);
+  console.log('📦 fetchMerchantOrders returning orders:', orders.length, 'orders for merchant', currentMerchantId);
+  return orders;
 };
 
 export const fetchUserOrders = async (userId: string): Promise<Order[]> => {
+  console.log('🔍 fetchUserOrders called with userId:', userId);
   await mockDelay();
-  return mockOrders.filter(order => order.userId === userId);
+  const orders = mockOrders.filter(order => order.userId === userId);
+  console.log('📦 fetchUserOrders returning orders:', orders.length, 'orders for user', userId);
+  return orders;
 };
 
 export const updateOrderStatus = async (orderId: string, status: Order['status']): Promise<Order> => {
+  console.log('🔄 updateOrderStatus called:', { orderId, status });
   await mockDelay();
   
   const orderIndex = mockOrders.findIndex(order => order.id === orderId);
@@ -565,12 +582,14 @@ export const updateOrderStatus = async (orderId: string, status: Order['status']
   saveOrdersToStorage(mockOrders);
   
   // Emit event for real-time updates
+  console.log('🚀 About to emit orderStatusUpdated event');
   emit('orderStatusUpdated', { orderId, status, order: mockOrders[orderIndex] });
   
   return { ...mockOrders[orderIndex] };
 };
 
 export const addOrder = async (order: Omit<Order, 'id'>): Promise<Order> => {
+  console.log('➕ addOrder called with order data:', order);
   await mockDelay();
   
   const newOrder: Order = {
@@ -578,13 +597,17 @@ export const addOrder = async (order: Omit<Order, 'id'>): Promise<Order> => {
     id: `ORD${Date.now()}`
   };
   
+  console.log('📝 Created new order:', newOrder);
+  
   mockOrders.unshift(newOrder);
   
   // Save to localStorage
   saveOrdersToStorage(mockOrders);
   
   // Emit event for real-time updates
+  console.log('🚀 About to emit orderAdded event for order:', newOrder.id);
   emit('orderAdded', newOrder);
+  console.log('✅ orderAdded event emitted successfully');
   
   return { ...newOrder };
 };

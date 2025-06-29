@@ -14,9 +14,12 @@ export const useOrders = ({ merchantId, userId }: UseOrdersOptions) => {
   // Determine query key and fetch function based on parameters
   const queryKey = merchantId ? ['orders', 'merchant', merchantId] : ['orders', 'user', userId];
   const queryFn = () => {
+    console.log('🔍 useOrders queryFn called with:', { merchantId, userId });
     if (merchantId) {
+      console.log('📞 Calling fetchMerchantOrders for merchant:', merchantId);
       return fetchMerchantOrders(merchantId);
     } else if (userId) {
+      console.log('📞 Calling fetchUserOrders for user:', userId);
       return fetchUserOrders(userId);
     } else {
       throw new Error('Either merchantId or userId must be provided');
@@ -26,23 +29,31 @@ export const useOrders = ({ merchantId, userId }: UseOrdersOptions) => {
   // Set up real-time event listeners for order updates
   useEffect(() => {
     const handleOrderStatusUpdated = (data: { orderId: string; status: Order['status']; order: Order }) => {
+      console.log('🔄 useOrders received orderStatusUpdated event:', data);
       // Invalidate all order queries to ensure fresh data from source
       queryClient.invalidateQueries({ queryKey: ['orders'] });
     };
 
     const handleOrderAdded = (order: Order) => {
+      console.log('➕ useOrders received orderAdded event:', order);
+      console.log('🔍 Current hook params:', { merchantId, userId });
+      console.log('🔍 Order details:', { orderMerchantId: order.merchantId, orderUserId: order.userId });
+      
       // Invalidate all order queries to ensure fresh data from source
       queryClient.invalidateQueries({ queryKey: ['orders'] });
+      console.log('🔄 Invalidated all order queries');
     };
 
+    console.log('👂 useOrders setting up event listeners for:', { merchantId, userId });
     on('orderStatusUpdated', handleOrderStatusUpdated);
     on('orderAdded', handleOrderAdded);
 
     return () => {
+      console.log('🔇 useOrders cleaning up event listeners');
       off('orderStatusUpdated', handleOrderStatusUpdated);
       off('orderAdded', handleOrderAdded);
     };
-  }, [queryClient]);
+  }, [queryClient, merchantId, userId]);
 
   return useQuery<Order[], Error>({
     queryKey,
