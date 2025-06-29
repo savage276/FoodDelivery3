@@ -26,33 +26,12 @@ export const useOrders = ({ merchantId, userId }: UseOrdersOptions) => {
   // Set up real-time event listeners for order updates
   useEffect(() => {
     const handleOrderStatusUpdated = (data: { orderId: string; status: Order['status']; order: Order }) => {
-      // Update the specific order in cache
-      queryClient.setQueryData(queryKey, (oldData: Order[] | undefined) => {
-        if (!oldData) return [];
-        return oldData.map(order => 
-          order.id === data.orderId ? data.order : order
-        );
-      });
-      
-      // Also invalidate related queries to ensure consistency
+      // Invalidate all order queries to ensure fresh data from source
       queryClient.invalidateQueries({ queryKey: ['orders'] });
     };
 
     const handleOrderAdded = (order: Order) => {
-      // Add new order to relevant caches
-      if (merchantId && order.merchantId === merchantId) {
-        queryClient.setQueryData(queryKey, (oldData: Order[] | undefined) => {
-          return oldData ? [order, ...oldData] : [order];
-        });
-      }
-      
-      if (userId && order.userId === userId) {
-        queryClient.setQueryData(queryKey, (oldData: Order[] | undefined) => {
-          return oldData ? [order, ...oldData] : [order];
-        });
-      }
-      
-      // Invalidate all order queries to ensure consistency
+      // Invalidate all order queries to ensure fresh data from source
       queryClient.invalidateQueries({ queryKey: ['orders'] });
     };
 
@@ -63,14 +42,15 @@ export const useOrders = ({ merchantId, userId }: UseOrdersOptions) => {
       off('orderStatusUpdated', handleOrderStatusUpdated);
       off('orderAdded', handleOrderAdded);
     };
-  }, [queryClient, queryKey, merchantId, userId]);
+  }, [queryClient]);
 
   return useQuery<Order[], Error>({
     queryKey,
     queryFn,
-    staleTime: 1 * 60 * 1000, // 1 minute
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 0, // Always consider data stale to ensure fresh fetches
+    gcTime: 5 * 60 * 1000, // 5 minutes
     enabled: !!(merchantId || userId), // Only run query if we have an ID
+    refetchOnWindowFocus: true, // Refetch when window regains focus
   });
 };
 
